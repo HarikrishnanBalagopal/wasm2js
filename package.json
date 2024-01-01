@@ -11,7 +11,12 @@
     "dev": "webpack serve --config webpack.dev.js",
     "start": "cd dist/ && python3 -m http.server 8080"
   },
-  "keywords": [],
+  "keywords": [
+    "wasm",
+    "compiler",
+    "decompiler",
+    "js"
+  ],
   "author": "Harikrishnan Balagopal",
   "license": "Apache-2.0",
   "devDependencies": {
