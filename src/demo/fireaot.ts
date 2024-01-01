@@ -47,8 +47,6 @@ export const setupFireAotDemo = async (compiledJSCode: string) => {
   context.fillRect(0, 0, W, H);
   const imageData = context.createImageData(W, H);
 
-  // (instance.exports.compiledFunc0 as Function)(); // TODO: remove this, start/setup should be run when the instance is created
-
   let running = false;
   const update = () => {
     requestAnimationFrame(update);
