@@ -1,4 +1,4 @@
-import { PAGE_SIZE } from "../common/constants";
+import { PAGE_SIZE, MY_CTX_FN } from "../common/constants";
 import { safeJSONstringify } from "../common/utils";
 import {
     BLOCK_TYPE_EMPTY, DEBUG_INST_HEX_TO_NAME, I_BLOCK, I_BR, I_BR_IF, I_BR_TABLE, I_CALL,
@@ -11,7 +11,8 @@ import {
     I_I32_LOAD, I_I32_LOAD_16_S, I_I32_LOAD_16_U, I_I32_LOAD_8_S, I_I32_LOAD_8_U, I_I32_LT_S, I_I32_LT_U, I_I32_MUL,
     I_I32_NE, I_I32_OR, I_I32_REM_S, I_I32_REM_U, I_I32_ROTL, I_I32_SHL, I_I32_SHR_S, I_I32_SHR_U, I_I32_STORE,
     I_I32_STORE_16, I_I32_STORE_8, I_I32_SUB, I_I32_TRUNC_F32_S, I_I32_TRUNC_F32_U, I_I32_TRUNC_F64_U, I_I32_TRUNC_SAT_F32_S, I_I32_TRUNC_SAT_F32_U, I_I32_TRUNC_SAT_F64_S, I_I32_TRUNC_SAT_F64_U, I_I32_XOR,
-    I_I64_CONST, I_I64_STORE, I_I64_TRUNC_SAT_F32_S, I_I64_TRUNC_SAT_F32_U, I_I64_TRUNC_SAT_F64_S, I_I64_TRUNC_SAT_F64_U, I_IF, I_LOCAL_GET, I_LOCAL_SET, I_LOCAL_TEE, I_LOOP, I_MEMORY_COPY, I_MEMORY_FILL, I_MEMORY_INIT, I_NOP, I_RETURN, I_SELECT, I_UNREACHABLE, I_VARIABLE_0XFC, I_VARIABLE_0XFD
+    I_I64_AND,
+    I_I64_CONST, I_I64_CTZ, I_I64_EQ, I_I64_EQZ, I_I64_LOAD, I_I64_NE, I_I64_OR, I_I64_STORE, I_I64_TRUNC_SAT_F32_S, I_I64_TRUNC_SAT_F32_U, I_I64_TRUNC_SAT_F64_S, I_I64_TRUNC_SAT_F64_U, I_I64_XOR, I_IF, I_LOCAL_GET, I_LOCAL_SET, I_LOCAL_TEE, I_LOOP, I_MEMORY_COPY, I_MEMORY_FILL, I_MEMORY_INIT, I_NOP, I_RETURN, I_SELECT, I_UNREACHABLE, I_VARIABLE_0XFC, I_VARIABLE_0XFD
 } from "../executor/instructions";
 import { ValueType } from "../executor/types";
 import { PModule } from "./parser";
@@ -363,6 +364,11 @@ export const compileAotHelper = async (ctx: CompilationContext, body: Array<MyPa
                 jsCode.push(`stack.push(new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 4).getInt32(0, true));`);
                 break;
             }
+            case I_I64_LOAD: {
+                const instData = inst.data as { "align": number; "offset": number; };
+                jsCode.push(`stack.push(new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 8).getBigInt64(0, true));`);
+                break;
+            }
             case I_F32_LOAD: {
                 const instData = inst.data as { "align": number; "offset": number; };
                 jsCode.push(`stack.push(new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 4).getFloat32(0, true));`);
@@ -540,6 +546,18 @@ export const compileAotHelper = async (ctx: CompilationContext, body: Array<MyPa
                 );
                 break;
             }
+            case I_I64_EQZ: {
+                jsCode.push('stack.push(stack.pop() === 0 ? 1 : 0);');
+                break;
+            }
+            case I_I64_EQ: {
+                jsCode.push('stack.push(stack.pop() === stack.pop() ? 1 : 0);');
+                break;
+            }
+            case I_I64_NE: {
+                jsCode.push('stack.push(stack.pop() !== stack.pop() ? 1 : 0);');
+                break;
+            }
             case I_F32_LT: {
                 jsCode.push(
                     '{',
@@ -676,6 +694,22 @@ export const compileAotHelper = async (ctx: CompilationContext, body: Array<MyPa
                     '    stack.push((v << x) | (v >>> (32-x)));',
                     '}',
                 );
+                break;
+            }
+            case I_I64_CTZ: {
+                jsCode.push(`stack.push(${MY_CTX_FN}(stack.pop()));`);
+                break;
+            }
+            case I_I64_AND: {
+                jsCode.push('stack.push(stack.pop() & stack.pop());');
+                break;
+            }
+            case I_I64_OR: {
+                jsCode.push('stack.push(stack.pop() | stack.pop());');
+                break;
+            }
+            case I_I64_XOR: {
+                jsCode.push('stack.push(stack.pop() ^ stack.pop());');
                 break;
             }
             case I_F32_ABS: {
@@ -913,6 +947,7 @@ export const compileAot = async (wasmBytes: Uint8Array): Promise<string> => {
             `    throw new Error('failed to find the function import in the import object: ${x.module} ${x.name}');`,
             '}',
             `const func${i} = import_object['${x.module}']['${x.name}'];`,
+            `const ${MY_CTX_FN} = (x) => { const s = x.toString(2); let c = 0; for(let i = s.length-1; i >= 0; i--,c++){if(s[i]!=='0')break;} return c; };`, // TODO: is this the best place for it?
         );
     });
     console.log('importJsCode', importJsCode);
