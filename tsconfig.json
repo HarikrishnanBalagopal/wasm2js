@@ -1,13 +1,14 @@
 {
-    "compilerOptions": {
-      "outDir": "./built",
-      "allowJs": false,
-      "target": "es2020",
-      "alwaysStrict": true,
-      "noImplicitAny": true,
-      "sourceMap": true,
-      "moduleResolution": "node"
-    },
-    "include": ["./src/**/*"]
-  }
-  
+  "compilerOptions": {
+    "outDir": "./built",
+    "allowJs": false,
+    "target": "es2020",
+    "alwaysStrict": true,
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "moduleResolution": "node"
+  },
+  "include": [
+    "./src/**/*"
+  ]
+}
