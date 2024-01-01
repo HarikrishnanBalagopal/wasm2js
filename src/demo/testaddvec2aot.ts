@@ -1,5 +1,5 @@
 import { ELEM_ID } from "./common";
-import { instantiateAot } from "../parser/compiler";
+import { instantiateAot } from "../parser/aotcompiler";
 
 export const setupTestAddVec2AotDemo = async (compiledJSCode: string) => {
   console.log('setting up the AOT compiled test addvec2 demo');

@@ -15,7 +15,7 @@ import {
 } from "../executor/instructions";
 import { ValueType } from "../executor/types";
 import { PModule } from "./parser";
-import { MyParserAst, MyParserAstCodeInst, MyWasmModuleBlockType, MyWasmModuleGlobal, MyWasmModuleImportExportType, ParserResultType } from "./types";
+import { MyParserAst, MyParserAstCodeInst, MyWasmImportObject, MyWasmInstance, MyWasmModuleBlockType, MyWasmModuleGlobal, MyWasmModuleImportExportType, ParserResultType } from "./types";
 
 type IfElseBody = {
     "blockType": number;
@@ -1012,4 +1012,9 @@ export const compileAot = async (wasmBytes: Uint8Array): Promise<string> => {
     // const evaluatedJsCode = eval(finalIffeJsCode);
     // console.log('t2', t2);
     // return evaluatedJsCode;
+};
+
+export const instantiateAot = async (compiledJSCode: string, importObject: MyWasmImportObject): Promise<MyWasmInstance> => {
+    const createInstance = eval(compiledJSCode);
+    return createInstance(importObject);
 };

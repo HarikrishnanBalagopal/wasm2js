@@ -1,6 +1,5 @@
 import { ELEM_ID } from "./common";
-import { compile, instantiate, instantiateAot } from "../parser/compiler";
-import { MyCompiledInstance, MyWasmModule } from "../parser/types";
+import { instantiateAot } from "../parser/aotcompiler";
 
 export const setupFireAotDemo = async (compiledJSCode: string) => {
   console.log('setting up the AOT compiled fire demo');

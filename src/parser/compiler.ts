@@ -127,8 +127,3 @@ export const instantiate = async (compiledModule: MyWasmModule, importObject: My
     // execute the start function
     return instance;
 };
-
-export const instantiateAot = async (compiledJSCode: string, importObject: MyWasmImportObject): Promise<MyWasmInstance> => {
-    const createInstance = eval(compiledJSCode);
-    return createInstance(importObject);
-};
