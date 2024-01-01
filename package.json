@@ -1,14 +1,14 @@
 {
-  "name": "wasm-ts-runtime",
+  "name": "@haribala/wasm2js",
   "version": "1.0.0",
   "type": "module",
   "packageManager": "pnpm@8.13.1",
-  "description": "A Wasm runtime written in Typescript.",
+  "description": "A compiler from WASM to JS written in Typescript.",
   "main": "dist/bundle.js",
   "scripts": {
     "clean": "rm -rf dist/",
-    "build": "webpack",
-    "dev": "webpack serve",
+    "build": "webpack --config webpack.prod.js",
+    "dev": "webpack serve --config webpack.dev.js",
     "start": "cd dist/ && python3 -m http.server 8080"
   },
   "keywords": [],
