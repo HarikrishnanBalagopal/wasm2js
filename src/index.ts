@@ -78,12 +78,13 @@ const setup = () => {
 };
 
 const main = async (): Promise<void> => {
+    if (!window || !((window as any).WASM2JS_DEMO_MODE)) return;
     console.log('main start');
     setup();
     console.log('main end');
 };
 
-// main().catch(console.error);
+main().catch(console.error);
 
 export {
     main,
