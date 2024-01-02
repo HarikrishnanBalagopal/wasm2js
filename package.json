@@ -20,6 +20,10 @@
   ],
   "author": "Harikrishnan Balagopal",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HarikrishnanBalagopal/wasm2js.git"
+  },
   "devDependencies": {
     "copy-webpack-plugin": "^11.0.0",
     "html-webpack-plugin": "^5.5.1",
