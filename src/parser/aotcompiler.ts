@@ -52,15 +52,23 @@ const my_stringify = (x: any) => {
     return JSON.stringify(x, (_, value) => typeof value === 'bigint' ? value.toString() : value);
 };
 
-export const compileAotHelper = async (ctx: CompilationContext, body: Array<MyParserAstCodeInst>): Promise<Array<string>> => {
-    console.log('DEBUG compileAotHelper called with ctx:', JSON.stringify(ctx), 'and body:', body);
+export const compileAotHelper = async (
+    ctx: CompilationContext,
+    body: Array<MyParserAstCodeInst>,
+    debug_mode: boolean = false,
+): Promise<Array<string>> => {
+    if (debug_mode) {
+        console.log('DEBUG compileAotHelper called with ctx:', JSON.stringify(ctx), 'and body:', body);
+    }
     const jsCode: Array<string> = [];
     for (let inst of body) {
-        const instName = DEBUG_INST_HEX_TO_NAME[inst.opCode];
-        console.log('compiling inst:', inst, instName);
-        const debugData = 'data' in inst ? ' ' + my_stringify(inst.data).slice(0, 64) : '';
-        jsCode.push(`// opcode: ${inst.opCode} ${instName}${debugData}`);
-        // jsCode.push(`console.log('opcode: ${inst.opCode} ${instName}${debugData}');`);
+        if (debug_mode) {
+            const instName = DEBUG_INST_HEX_TO_NAME[inst.opCode];
+            console.log('compiling inst:', inst, instName);
+            const debugData = 'data' in inst ? ' ' + my_stringify(inst.data).slice(0, 64) : '';
+            jsCode.push(`// opcode: ${inst.opCode} ${instName}${debugData}`);
+            // jsCode.push(`console.log('opcode: ${inst.opCode} ${instName}${debugData}');`);
+        }
         switch (inst.opCode) {
             case I_UNREACHABLE: {
                 jsCode.push('throw new Error("unreachable code");');
@@ -84,7 +92,7 @@ export const compileAotHelper = async (ctx: CompilationContext, body: Array<MyPa
                         console.log('SPECIAL CASE of I32 block type');
                         const block_idx = `block_with_result_${ctx.newId++}`;
                         ctx.stack.push({ 'is_loop': false, 'label': block_idx });
-                        const blockJsCode = await compileAotHelper(ctx, instData.body);
+                        const blockJsCode = await compileAotHelper(ctx, instData.body, debug_mode);
                         jsCode.push(`${block_idx}: {`);
                         jsCode.push(...blockJsCode.map(x => '    ' + x));
                         jsCode.push('}');
@@ -94,7 +102,7 @@ export const compileAotHelper = async (ctx: CompilationContext, body: Array<MyPa
                 }
                 const block_idx = `block_${ctx.newId++}`;
                 ctx.stack.push({ 'is_loop': false, 'label': block_idx });
-                const blockJsCode = await compileAotHelper(ctx, instData.body);
+                const blockJsCode = await compileAotHelper(ctx, instData.body, debug_mode);
                 jsCode.push(`${block_idx}: {`);
                 jsCode.push(...blockJsCode.map(x => '    ' + x));
                 jsCode.push('}');
@@ -107,7 +115,7 @@ export const compileAotHelper = async (ctx: CompilationContext, body: Array<MyPa
                 if (instData.blockType !== BLOCK_TYPE_EMPTY) throw new Error('TODO: implement non-empty loop type');
                 const block_idx = `loop_${ctx.newId++}`;
                 ctx.stack.push({ 'is_loop': true, 'label': block_idx });
-                const loopJsCode = await compileAotHelper(ctx, instData.body);
+                const loopJsCode = await compileAotHelper(ctx, instData.body, debug_mode);
                 jsCode.push(`${block_idx}: while (true) {`);
                 jsCode.push(...loopJsCode.map(x => '    ' + x));
                 jsCode.push(
@@ -123,7 +131,7 @@ export const compileAotHelper = async (ctx: CompilationContext, body: Array<MyPa
                 const block_idx = `if_${ctx.newId++}`;
                 ctx.stack.push({ 'is_loop': false, 'label': block_idx });
                 jsCode.push(`${block_idx}: if (stack.pop() !== 0) {`);
-                const trueJsCode = await compileAotHelper(ctx, instData.trueBody);
+                const trueJsCode = await compileAotHelper(ctx, instData.trueBody, debug_mode);
                 jsCode.push(...trueJsCode.map(x => '    ' + x));
                 if (instData.falseBody) {
                     // console.log('***********************');
@@ -133,7 +141,7 @@ export const compileAotHelper = async (ctx: CompilationContext, body: Array<MyPa
                     // console.log('***********************');
                     // ctx.stack.push({ 'is_loop': false, 'label': block_idx });
                     jsCode.push('} else {');
-                    const falseJsCode = await compileAotHelper(ctx, instData.falseBody);
+                    const falseJsCode = await compileAotHelper(ctx, instData.falseBody, debug_mode);
                     jsCode.push(...falseJsCode.map(x => '    ' + x));
                     // console.log('!!!!!!!!!!!!!!!!!!!!!!!');
                     // console.log('!!!!!!!!!!!!!!!!!!!!!!!');
@@ -891,14 +899,14 @@ export const compileAotHelper = async (ctx: CompilationContext, body: Array<MyPa
     return jsCode;
 };
 
-export const compileAot = async (wasmBytes: Uint8Array): Promise<string> => {
+export const compileAot = async (wasmBytes: Uint8Array, debug_mode: boolean = false): Promise<string> => {
     //, importObject: MyWasmImportObject): Promise<string> => {
     // console.log('DEBUG compileAot called with importObject:', importObject);
-    console.log('DEBUG compileAot called with wasmBytes:', wasmBytes);
+    if (debug_mode) console.log('DEBUG compileAot called with wasmBytes:', wasmBytes);
     const result = PModule(wasmBytes);
     if (result.type !== ParserResultType.RESULT) throw new Error(`parsing failed. ${safeJSONstringify(result)}`);
     const ast: MyParserAst = result.result;
-    console.log('DEBUG >>>>>>>>>> ast:', ast);
+    if (debug_mode) console.log('DEBUG ast:', ast);
 
     // Total JS Code (lines)
     const allJsCodeLines = [];
@@ -1027,7 +1035,7 @@ export const compileAot = async (wasmBytes: Uint8Array): Promise<string> => {
         ];
         ctx.types = ast.types;
         ctx.stack.push({ is_loop: false, label: `top_level_func_${i}` });
-        const funcBodyJsCode = await compileAotHelper(ctx, code.body);
+        const funcBodyJsCode = await compileAotHelper(ctx, code.body, debug_mode);
         funcJSCode.push(...funcBodyJsCode.map(x => '    ' + x));
         if (func_type.results.length > 0) {
             if (func_type.results.length === 1) {
