@@ -923,21 +923,28 @@ export const compileAot = async (wasmBytes: Uint8Array): Promise<string> => {
     // imported globals
     const importedGlobals = ast.imports.filter(x => x.type === MyWasmModuleImportExportType.GLOBAL);
     const importedGlobalsLength = importedGlobals.length;
-    importJsCode.push(...importedGlobals.map((g, i) => {
+    importedGlobals.forEach((g, i) => {
         // console.log('!!!!!!!!!! importedGlobals g:', g);
-        return `let global${i} = import_object['${g.module}']['${g.name}'];`;
+        const mutability = 'let'; // TODO: change this to 'const' based on mutability/type of the imported global.
+        importJsCode.push(
+            `if (!('${g.module}' in import_object) || !('${g.name}' in import_object['${g.module}'])) {`,
+            `    throw new Error('failed to find the global import in the import object: ${g.module} ${g.name}');`,
+            '}',
+            `${mutability} global${i} = import_object['${g.module}']['${g.name}'];`,
+        );
+        // return `let global${i} = import_object['${g.module}']['${g.name}'];`;
         // {
         //     'module': "",
         //     'name': "rate",
         //     'type': 3,
         //     'typeIdx': [127, 0],
         // }
-    }));
+    });
 
     // imported memories
     const importedMemories = ast.imports.filter(x => x.type === MyWasmModuleImportExportType.MEM);
     if (importedMemories.length > 0) {
-        if (importedMemories.length > 1) throw new Error('maximum one memory is supported as of now');
+        if (importedMemories.length > 1) throw new Error('maximum one memory import is supported currently');
         const importedMemory = importedMemories[0];
         console.log('DEBUG importedMemory', importedMemory);
         importJsCode.push(
