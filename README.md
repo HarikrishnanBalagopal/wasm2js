@@ -19,7 +19,7 @@ const fetch_and_execute = async () => {
     // create an instance of the wasm module
     const importObject = { /* imports required by the wasm module */ };
     // NOTE: instantiateAot will also call the 'start' function if it exists
-    // This is a feature of WASM itself https://webassembly.github.io/spec/core/text/modules.html#start-function
+    // https://webassembly.github.io/spec/core/text/modules.html#start-function
     const instance = await instantiateAot(jsCode, importObject);
     // call your wasm function
     const result = instance.exports.myfunc( /* arguments required by the function */ );
