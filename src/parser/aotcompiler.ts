@@ -1,4 +1,4 @@
-import { PAGE_SIZE, MY_CTX_FN } from "../common/constants";
+import { PAGE_SIZE, MY_CTZ_FN } from "../common/constants";
 import { safeJSONstringify } from "../common/utils";
 import {
     BLOCK_TYPE_EMPTY, DEBUG_INST_HEX_TO_NAME, I_BLOCK, I_BR, I_BR_IF, I_BR_TABLE, I_CALL,
@@ -697,7 +697,7 @@ export const compileAotHelper = async (ctx: CompilationContext, body: Array<MyPa
                 break;
             }
             case I_I64_CTZ: {
-                jsCode.push(`stack.push(${MY_CTX_FN}(stack.pop()));`);
+                jsCode.push(`stack.push(${MY_CTZ_FN}(stack.pop()));`);
                 break;
             }
             case I_I64_AND: {
@@ -904,7 +904,19 @@ export const compileAot = async (wasmBytes: Uint8Array): Promise<string> => {
     const allJsCodeLines = [];
 
     // imports
-    const importJsCode: Array<string> = [];
+    const importJsCode: Array<string> = [
+        // TODO: is this the best place for the count trailing zeros helper function?
+        `function ${MY_CTZ_FN}(x) {`,
+        '    const s = x.toString(2);',
+        '    let count = 0;',
+        '    for (let i = s.length-1; i >= 0; i--, count++) {',
+        '        if (s[i] !== "0") {',
+        '            break;',
+        '        }',
+        '    }',
+        '    return count;',
+        '}',
+    ];
 
     // TODO: imported tables
 
@@ -947,7 +959,6 @@ export const compileAot = async (wasmBytes: Uint8Array): Promise<string> => {
             `    throw new Error('failed to find the function import in the import object: ${x.module} ${x.name}');`,
             '}',
             `const func${i} = import_object['${x.module}']['${x.name}'];`,
-            `const ${MY_CTX_FN} = (x) => { const s = x.toString(2); let c = 0; for(let i = s.length-1; i >= 0; i--,c++){if(s[i]!=='0')break;} return c; };`, // TODO: is this the best place for it?
         );
     });
     console.log('importJsCode', importJsCode);
