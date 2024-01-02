@@ -1,0 +1,32 @@
+{
+  "name": "@haribala/wasm2js",
+  "version": "1.0.1",
+  "type": "module",
+  "packageManager": "pnpm@8.13.1",
+  "description": "A compiler from WASM to JS written in Typescript.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist/",
+    "build": "tsc"
+  },
+  "keywords": [
+    "wasm",
+    "webassembly",
+    "compiler",
+    "decompiler",
+    "js"
+  ],
+  "author": "Harikrishnan Balagopal",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HarikrishnanBalagopal/wasm2js.git"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4"
+  }
+}
