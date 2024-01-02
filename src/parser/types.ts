@@ -1,4 +1,4 @@
-import { ValueType } from "../executor/types";
+import { ValueType } from "../common/types";
 export type Limits = {
     min: number;
     max?: number;

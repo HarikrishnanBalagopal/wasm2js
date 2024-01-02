@@ -1,5 +1,5 @@
 import { ELEM_ID } from "./demo/common";
-import { compileAot } from "./parser/aotcompiler";
+import { compileAot, instantiateAot } from "./parser/aotcompiler";
 import { setupBadGBAotDemo } from "./demo/badgbaot";
 import { setupDinoAotDemo } from "./demo/dinoaot";
 import { setupFireAotDemo } from "./demo/fireaot";
@@ -83,4 +83,10 @@ const main = async (): Promise<void> => {
     console.log('main end');
 };
 
-main().catch(console.error);
+// main().catch(console.error);
+
+export {
+    main,
+    compileAot,
+    instantiateAot,
+};

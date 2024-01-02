@@ -13,8 +13,8 @@ import {
     I_I32_STORE_16, I_I32_STORE_8, I_I32_SUB, I_I32_TRUNC_F32_S, I_I32_TRUNC_F32_U, I_I32_TRUNC_F64_U, I_I32_TRUNC_SAT_F32_S, I_I32_TRUNC_SAT_F32_U, I_I32_TRUNC_SAT_F64_S, I_I32_TRUNC_SAT_F64_U, I_I32_XOR,
     I_I64_AND,
     I_I64_CONST, I_I64_CTZ, I_I64_EQ, I_I64_EQZ, I_I64_LOAD, I_I64_NE, I_I64_OR, I_I64_STORE, I_I64_TRUNC_SAT_F32_S, I_I64_TRUNC_SAT_F32_U, I_I64_TRUNC_SAT_F64_S, I_I64_TRUNC_SAT_F64_U, I_I64_XOR, I_IF, I_LOCAL_GET, I_LOCAL_SET, I_LOCAL_TEE, I_LOOP, I_MEMORY_COPY, I_MEMORY_FILL, I_MEMORY_INIT, I_NOP, I_RETURN, I_SELECT, I_UNREACHABLE, I_VARIABLE_0XFC, I_VARIABLE_0XFD
-} from "../executor/instructions";
-import { ValueType } from "../executor/types";
+} from "../common/instructions";
+import { ValueType } from "../common/types";
 import { PModule } from "./parser";
 import { MyParserAst, MyParserAstCodeInst, MyWasmImportObject, MyWasmInstance, MyWasmModuleBlockType, MyWasmModuleGlobal, MyWasmModuleImportExportType, ParserResultType } from "./types";
 

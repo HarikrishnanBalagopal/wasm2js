@@ -4,8 +4,8 @@ import { safeJSONstringify } from "../common/utils";
 import {
     I_BLOCK, I_BR, I_BR_IF, I_BR_TABLE, I_CALL, I_DATA_DROP, I_ELSE, I_END, I_I32_ADD,
     I_I32_CONST, I_I32_LOAD, I_I32_LOAD_16_U, I_I32_LOAD_8_U, I_I32_STORE, I_I32_STORE_8, I_IF, I_LOCAL_GET, I_LOCAL_SET, I_LOCAL_TEE, I_LOOP, I_MEMORY_COPY, I_MEMORY_FILL, I_MEMORY_INIT, I_NOP, I_UNREACHABLE
-} from "../executor/instructions";
-import { BranchTable, FrameLocal, ValueType } from "../executor/types";
+} from "../common/instructions";
+import { BranchTable, FrameLocal, ValueType } from "../common/types";
 import { EOF, FuncType, Limits, MyParserAst, MyWasmModuleBlockType, MyWasmModuleExport, MyWasmModuleFuncInst, MyWasmModuleImport, MyWasmModuleImportExportType, Parser, ParserResult, ParserResultType, U32Obj } from "./types";
 
 const mapP = <T1, T2>(f: (_: T1) => T2) => (p: Parser<T1>): Parser<T2> => (ts) => {
