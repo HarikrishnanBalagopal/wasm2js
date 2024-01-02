@@ -1,6 +1,16 @@
 # WASM to JS compiler
 
-A compiler (decompiler?) from WASM to JS written in Typescript.
+A compiler (decompiler?) from WebAssembly to Javascript written in Typescript.
+
+NOTE: This library is not the same as packages like
+https://github.com/thlorenz/wasm2js , https://github.com/mafintosh/wat2js , etc.
+which only embed the WASM binary in a Javascript module.
+Unlike the above packages, this library parses the WASM binary
+and compiles the abstract syntax tree to Javascript code instruction by instruction.
+The result is similar to porting your WASM app to Javascript line by line.
+
+Technically it might be called a decompiler since we are going from
+a low-level assembly language (WASM) to a high-level language (Javascript).
 
 ## Usage
 
