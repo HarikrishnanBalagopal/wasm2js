@@ -4,6 +4,8 @@ A compiler (decompiler?) from WebAssembly to Javascript written in Typescript.
 
 https://www.npmjs.com/package/@haribala/wasm2js
 
+Demos: https://haribala.dev/wasm2js
+
 NOTE: This library is not the same as packages like
 https://github.com/thlorenz/wasm2js , https://github.com/mafintosh/wat2js , etc.
 which only embed the WASM binary in a Javascript module.
