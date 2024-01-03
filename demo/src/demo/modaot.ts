@@ -141,7 +141,7 @@ export const setupModAotDemo = async (compiledJSCode: string) => {
   let rowEls: Array<any> = [];
 
   let initialized = (async function () {
-    await audio.audioWorklet.addModule('/assets/demo/mod/worklet.js');
+    await audio.audioWorklet.addModule(`${window.location.pathname}assets/demo/mod/worklet.js`);
     const module = compiledJSCode;
     // const module = (importObject: any) => instantiateAot(compiledJSCode, importObject);
     node = new AudioWorkletNode(audio, 'player', {
