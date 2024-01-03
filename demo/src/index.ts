@@ -46,7 +46,7 @@ const setup = () => {
         const target = (e.target as HTMLOptionElement).value;
         if (target === default_url) return;
 
-        const wasmUrl = `/assets/wasm/${target}.wasm`;
+        const wasmUrl = `${window.location.pathname}assets/wasm/${target}.wasm`;
         console.log(wasmUrl);
         const response = await fetch(wasmUrl);
         if (!response.ok) throw new Error('failed to fetch');

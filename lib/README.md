@@ -17,7 +17,7 @@ a low-level assembly language (WASM) to a high-level language (Javascript).
 ## Usage
 
 ```js
-import { compileAot, instantiateAot } from '@haribala/wasm2js/src/parser/aotcompiler';
+import { compileAot, instantiateAot } from '@haribala/wasm2js';
 
 const fetch_and_execute = async () => {
     // fetch the wasm binary
@@ -50,24 +50,13 @@ fetch_and_execute().catch(console.error);
 
 ## Development
 
-Install dependencies (run only once)
+Install dependencies (run this only once):
 
 ```shell
 $ pnpm install
 ```
 
-Run the WebPack development server
-
-```shell
-$ pnpm run dev
-```
-
-In your browser you can try the various demos that are included.
-Demos were taken from https://github.com/binji/raw-wasm and modified
-slightly to run with this library.
-
-
-If you want to build the final bundle in production mode:
+Compile the typescript to javascript:
 
 ```shell
 $ pnpm run build

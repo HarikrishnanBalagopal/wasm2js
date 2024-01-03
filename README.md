@@ -4,6 +4,8 @@ A compiler (decompiler?) from WebAssembly to Javascript written in Typescript.
 
 https://www.npmjs.com/package/@haribala/wasm2js
 
+Demos: https://haribala.dev/wasm2js
+
 NOTE: This library is not the same as packages like
 https://github.com/thlorenz/wasm2js , https://github.com/mafintosh/wat2js , etc.
 which only embed the WASM binary in a Javascript module.
@@ -17,7 +19,7 @@ a low-level assembly language (WASM) to a high-level language (Javascript).
 ## Usage
 
 ```js
-import { compileAot, instantiateAot } from '@haribala/wasm2js/src/parser/aotcompiler';
+import { compileAot, instantiateAot } from '@haribala/wasm2js';
 
 const fetch_and_execute = async () => {
     // fetch the wasm binary
@@ -47,28 +49,3 @@ fetch_and_execute().catch(console.error);
 - Add support for imported global variable immutability (const)
 - Add support for vector/SIMD WASM instructions
 - Add option to optimize the generated JS code. Example: local.get 0, local.get 1, i32.add, local.set 0
-
-## Development
-
-Install dependencies (run only once)
-
-```shell
-$ pnpm install
-```
-
-Run the WebPack development server
-
-```shell
-$ pnpm run dev
-```
-
-In your browser you can try the various demos that are included.
-Demos were taken from https://github.com/binji/raw-wasm and modified
-slightly to run with this library.
-
-
-If you want to build the final bundle in production mode:
-
-```shell
-$ pnpm run build
-```
