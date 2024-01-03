@@ -2,6 +2,8 @@
 
 Demos: https://haribala.dev/wasm2js
 
+Demos were taken from https://github.com/binji/raw-wasm and adapted to run with this library.
+
 ## Development
 
 Install dependencies
