@@ -2,14 +2,17 @@ import {
     BLOCK_TYPE_EMPTY, DEBUG_INST_HEX_TO_NAME, I_BLOCK, I_BR, I_BR_IF, I_BR_TABLE, I_CALL,
     I_DATA_DROP, I_DROP, I_ELSE, I_END, I_F32_ABS, I_F32_ADD, I_F32_CONST, I_F32_CONVERT_I32_S, I_F32_CONVERT_I32_U,
     I_F32_COPYSIGN, I_F32_DIV, I_F32_FLOOR, I_F32_GE, I_F32_GT, I_F32_LE, I_F32_LOAD, I_F32_LT, I_F32_MAX,
-    I_F32_MIN, I_F32_MUL, I_F32_NEG, I_F32_SQRT, I_F32_STORE, I_F32_SUB, I_F32_TRUNC, I_F64_CONST, I_F64_MUL,
+    I_F32_MIN, I_F32_MUL, I_F32_NE, I_F32_NEG, I_F32_SQRT, I_F32_STORE, I_F32_SUB, I_F32_TRUNC, I_F64_CONST, I_F64_MUL,
     I_F64_NEAREST, I_GLOBAL_GET, I_GLOBAL_SET, I_I32_ADD, I_I32_AND, I_I32_CONST, I_I32_DIV_S, I_I32_DIV_U,
     I_I32_EQ, I_I32_EQZ, I_I32_EXTEND_8_S, I_I32_GE_S, I_I32_GE_U, I_I32_GT_S, I_I32_GT_U, I_I32_LE_S, I_I32_LE_U,
     I_I32_LOAD, I_I32_LOAD_16_S, I_I32_LOAD_16_U, I_I32_LOAD_8_S, I_I32_LOAD_8_U, I_I32_LT_S, I_I32_LT_U, I_I32_MUL,
     I_I32_NE, I_I32_OR, I_I32_REM_S, I_I32_REM_U, I_I32_ROTL, I_I32_SHL, I_I32_SHR_S, I_I32_SHR_U, I_I32_STORE,
     I_I32_STORE_16, I_I32_STORE_8, I_I32_SUB, I_I32_TRUNC_F32_S, I_I32_TRUNC_F32_U, I_I32_TRUNC_F64_U,
-    I_I32_TRUNC_SAT_F32_S, I_I32_TRUNC_SAT_F32_U, I_I32_TRUNC_SAT_F64_S, I_I32_TRUNC_SAT_F64_U, I_I32_XOR,
-    I_I64_AND, I_I64_CONST, I_I64_CTZ, I_I64_EQ, I_I64_EQZ, I_I64_LOAD, I_I64_NE, I_I64_OR, I_I64_STORE,
+    I_I32_TRUNC_SAT_F32_S, I_I32_TRUNC_SAT_F32_U, I_I32_TRUNC_SAT_F64_S, I_I32_TRUNC_SAT_F64_U, I_I32_WRAP_I64, I_I32_XOR,
+    I_I64_ADD,
+    I_I64_AND, I_I64_CONST, I_I64_CTZ, I_I64_EQ, I_I64_EQZ, I_I64_EXTEND_I32_U, I_I64_LOAD, I_I64_LOAD_32_U, I_I64_MUL, I_I64_NE, I_I64_OR, I_I64_POPCNT, I_I64_SHL, I_I64_SHR_S, I_I64_SHR_U, I_I64_STORE,
+    I_I64_STORE_32,
+    I_I64_SUB,
     I_I64_TRUNC_SAT_F32_S, I_I64_TRUNC_SAT_F32_U, I_I64_TRUNC_SAT_F64_S, I_I64_TRUNC_SAT_F64_U, I_I64_XOR, I_IF,
     I_LOCAL_GET, I_LOCAL_SET, I_LOCAL_TEE, I_LOOP, I_MEMORY_COPY, I_MEMORY_FILL, I_MEMORY_INIT, I_NOP, I_RETURN,
     I_SELECT, I_UNREACHABLE, I_VARIABLE_0XFC, I_VARIABLE_0XFD,
@@ -82,7 +85,7 @@ export const compileAotHelper = async (
                 break;
             }
             case I_BLOCK: {
-                console.log('DEBUG block', inst.data);
+                if (debug_mode) console.log('DEBUG block', inst.data);
                 const instData = inst.data as { blockType: number; body: Array<MyParserAstCodeInst> };
                 if (instData.blockType !== BLOCK_TYPE_EMPTY) {
                     if (instData.blockType === ValueType.I32) {
@@ -93,7 +96,7 @@ export const compileAotHelper = async (
                         for the function type: [] -> [valtype].
                         */
                         // TODO: is this correct?
-                        console.log('SPECIAL CASE of I32 block type');
+                        console.log('Warning: SPECIAL CASE of I32 block type');
                         const block_idx = `block_with_result_${ctx.newId++}`;
                         ctx.stack.push({ 'is_loop': false, 'label': block_idx });
                         const blockJsCode = await compileAotHelper(ctx, instData.body, debug_mode);
@@ -114,7 +117,7 @@ export const compileAotHelper = async (
                 break;
             }
             case I_LOOP: {
-                console.log('DEBUG loop', inst.data);
+                if (debug_mode) console.log('DEBUG loop', inst.data);
                 const instData = inst.data as { blockType: number; body: Array<MyParserAstCodeInst> };
                 if (instData.blockType !== BLOCK_TYPE_EMPTY) throw new Error('TODO: implement non-empty loop type');
                 const block_idx = `loop_${ctx.newId++}`;
@@ -161,25 +164,25 @@ export const compileAotHelper = async (
                 break;
             }
             case I_END: {
-                console.log('DEBUG I_END >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> stack:', JSON.stringify(ctx.stack));
+                if (debug_mode) console.log('DEBUG I_END >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> stack:', JSON.stringify(ctx.stack));
                 if (ctx.stack.length === 0) throw new Error('trying to I_END with an empty stack');
                 ctx.stack.pop();
-                console.log('stack:', JSON.stringify(ctx.stack));
+                if (debug_mode) console.log('stack:', JSON.stringify(ctx.stack));
                 // throw new Error('TODO: implement I_END');
                 break;
             }
             case I_BR: {
-                console.log('I_BR inst', inst, 'stack', JSON.stringify(ctx.stack));
+                if (debug_mode) console.log('I_BR inst', inst, 'stack', JSON.stringify(ctx.stack));
                 // throw new Error('TODO: implement I_BR');
                 const instData = inst.data as number;
                 if (ctx.stack.length === 0) {
-                    console.log('I_BR inst', inst);
+                    if (debug_mode) console.log('I_BR inst', inst);
                     throw new Error('trying to br with an empty stack');
                 }
                 const targetIdx = ctx.stack.length - 1 - instData;
                 const target = ctx.stack[targetIdx];
                 if (targetIdx === 0) {
-                    console.log('break to a function instead of a block or loop, target:', target);
+                    console.log('I_BR break to a function instead of a block or loop, target:', target);
                     const func_type = ctx.types[ctx.func_type_idx];
                     if (func_type.results.length === 0) jsCode.push('return;');
                     else if (func_type.results.length === 1) jsCode.push('return stack.pop();');
@@ -195,16 +198,16 @@ export const compileAotHelper = async (
                 //     console.log('I_BR_IF inst', inst);
                 //     throw new Error('TODO: implement I_BR_IF');
                 // }
-                console.log('I_BR_IF inst', inst, 'stack', JSON.stringify(ctx.stack));
+                if (debug_mode) console.log('I_BR_IF inst', inst, 'stack', JSON.stringify(ctx.stack));
                 const instData = inst.data as number;
                 if (ctx.stack.length === 0) {
-                    console.log('I_BR_IF inst', inst);
+                    if (debug_mode) console.log('I_BR_IF inst', inst);
                     throw new Error('trying to br_if with an empty stack');
                 }
                 const targetIdx = ctx.stack.length - 1 - instData;
                 const target = ctx.stack[targetIdx];
                 if (targetIdx === 0) {
-                    console.log('break (conditional) to a function instead of a block or loop, target:', target);
+                    if (debug_mode) console.log('I_BR_IF break (conditional) to a function instead of a block or loop, target:', target);
                     const func_type = ctx.types[ctx.func_type_idx];
                     if (func_type.results.length === 0) jsCode.push('if (stack.pop() !== 0) { return; }');
                     else if (func_type.results.length === 1) jsCode.push('if (stack.pop() !== 0) { return stack.pop(); }');
@@ -217,11 +220,11 @@ export const compileAotHelper = async (
             }
             case I_BR_TABLE: {
                 const instData = inst.data as { def: number; branches: Array<number> };
-                console.log('I_BR_TABLE instData:', instData);
+                if (debug_mode) console.log('I_BR_TABLE instData:', instData);
                 if (instData.def >= ctx.stack.length) throw new Error('not enough stack elements for def branch');
                 if (Math.max(...instData.branches) >= ctx.stack.length) throw new Error('not enough stack elements for the various branch');
                 if (instData.branches.length === 0) {
-                    console.log('DEBUG: I_BR_TABLE with only a default branch');
+                    if (debug_mode) console.log('DEBUG: I_BR_TABLE with only a default branch');
                     const target = ctx.stack[ctx.stack.length - 1 - instData.def];
                     jsCode.push(
                         'stack.pop();',
@@ -229,7 +232,7 @@ export const compileAotHelper = async (
                     );
                     break;
                 }
-                console.log('DEBUG: I_BR_TABLE with multiple branches and a default branch');
+                if (debug_mode) console.log('DEBUG: I_BR_TABLE with multiple branches and a default branch');
                 jsCode.push(
                     '{',
                     '    const target_idx = stack.pop();',
@@ -269,7 +272,7 @@ export const compileAotHelper = async (
             }
             case I_CALL: {
                 // TODO: think about how the stack works and also fix function indices??????????????????????
-                console.log('I_CALL', inst, 'ctx:', JSON.stringify(ctx));
+                if (debug_mode) console.log('I_CALL', inst, 'ctx:', JSON.stringify(ctx));
                 const funcIdx = inst.data as number;
                 // console.log('DEBUG funcIdx', funcIdx);
                 // jsCode.push(`stack.push(func${funcIdx}());`);
@@ -277,7 +280,7 @@ export const compileAotHelper = async (
                 const func_type_idx = ctx.funcs[funcIdx];
                 if (func_type_idx >= ctx.types.length) throw new Error('function type index is outside the range of the types array');
                 const func_type = ctx.types[func_type_idx];
-                console.log('calling a function of funcIdx', funcIdx, ' func_type_idx', func_type_idx, ' func_type', func_type);
+                if (debug_mode) console.log('I_CALL calling a function of funcIdx', funcIdx, ' func_type_idx', func_type_idx, ' func_type', func_type);
                 if (func_type.params.length === 0 && func_type.results.length === 0) {
                     // no params and no results
                     jsCode.push(`func${funcIdx}();`);
@@ -383,7 +386,20 @@ export const compileAotHelper = async (
             }
             case I_F32_LOAD: {
                 const instData = inst.data as { "align": number; "offset": number; };
-                jsCode.push(`stack.push(new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 4).getFloat32(0, true));`);
+                jsCode.push('{');
+                jsCode.push(`    const x = stack.pop();`);
+                jsCode.push(`    const o = ${instData.offset};`);
+                jsCode.push('    try {');
+                // jsCode.push(`stack.push(new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 4).getFloat32(0, true));`);
+                jsCode.push(`        stack.push(new DataView(memory0.buffer, o + x, 4).getFloat32(0, true));`);
+                jsCode.push('    } catch(e) {');
+                // jsCode.push('        throw new Error(`failed on I_F32_LOAD ${e}`);');
+                jsCode.push(`        console.log('x', x);`);
+                jsCode.push(`        console.log('o', o);`);
+                jsCode.push(`        console.log('memory0', memory0);`);
+                jsCode.push('        debugger;');
+                jsCode.push('    }');
+                jsCode.push('}');
                 break;
             }
             case I_I32_LOAD_8_S: {
@@ -404,6 +420,11 @@ export const compileAotHelper = async (
             case I_I32_LOAD_16_U: {
                 const instData = inst.data as { "align": number; "offset": number; };
                 jsCode.push(`stack.push(new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 2).getUint16(0, true));`);
+                break;
+            }
+            case I_I64_LOAD_32_U: {
+                const instData = inst.data as { "align": number; "offset": number; };
+                jsCode.push(`stack.push(BigInt(new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 4).getUint32(0, true)));`);
                 break;
             }
             case I_I32_STORE: {
@@ -456,14 +477,22 @@ export const compileAotHelper = async (
                 );
                 break;
             }
+            case I_I64_STORE_32: {
+                const instData = inst.data as { "align": number; "offset": number; };
+                jsCode.push(
+                    '{',
+                    '    const x = Number(stack.pop() & 0xFFFFFFFFn);',
+                    `    new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 4).setInt32(0, x, true);`,
+                    '}',
+                );
+                break;
+            }
             case I_I32_CONST: {
                 jsCode.push(`stack.push(${inst.data});`);
                 break;
             }
             case I_I64_CONST: {
-                // console.log('inst', inst);
-                // throw new Error('TODO: implement I_I64_CONST');
-                jsCode.push(`stack.push(${inst.data});`);
+                jsCode.push(`stack.push(${inst.data}n);`);
                 break;
             }
             case I_F32_CONST: {
@@ -559,7 +588,7 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I64_EQZ: {
-                jsCode.push('stack.push(stack.pop() === 0 ? 1 : 0);');
+                jsCode.push('stack.push(stack.pop() === 0n ? 1 : 0);');
                 break;
             }
             case I_I64_EQ: {
@@ -567,6 +596,10 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I64_NE: {
+                jsCode.push('stack.push(stack.pop() !== stack.pop() ? 1 : 0);');
+                break;
+            }
+            case I_F32_NE: {
                 jsCode.push('stack.push(stack.pop() !== stack.pop() ? 1 : 0);');
                 break;
             }
@@ -709,11 +742,38 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I64_CTZ: {
-                jsCode.push(`stack.push(${MY_CTZ_FN}(stack.pop()));`);
+                jsCode.push(`stack.push(BigInt(${MY_CTZ_FN}(stack.pop())));`);
+                break;
+            }
+            case I_I64_POPCNT: {
+                jsCode.push('stack.push(stack.pop().toString(2).split("").filter(x => x==="1").length);');
+                break;
+            }
+            case I_I64_ADD: {
+                jsCode.push('stack.push(stack.pop() + stack.pop());');
+                break;
+            }
+            case I_I64_SUB: {
+                jsCode.push(
+                    '{',
+                    '    const x = stack.pop();',
+                    '    stack.push(stack.pop() - x);',
+                    '}',
+                );
+                break;
+            }
+            case I_I64_MUL: {
+                jsCode.push('stack.push(stack.pop() * stack.pop());');
                 break;
             }
             case I_I64_AND: {
-                jsCode.push('stack.push(stack.pop() & stack.pop());');
+                // jsCode.push('stack.push(stack.pop() & stack.pop());');
+                jsCode.push('{');
+                jsCode.push('    const x = stack.pop();');
+                jsCode.push('    const y = stack.pop();');
+                jsCode.push('    if(y === (x-1n)) debugger;');
+                jsCode.push('    stack.push(x & y);');
+                jsCode.push('}');
                 break;
             }
             case I_I64_OR: {
@@ -722,6 +782,33 @@ export const compileAotHelper = async (
             }
             case I_I64_XOR: {
                 jsCode.push('stack.push(stack.pop() ^ stack.pop());');
+                break;
+            }
+            case I_I64_SHL: {
+                jsCode.push(
+                    '{',
+                    '    const x = stack.pop();',
+                    '    stack.push(stack.pop() << x);',
+                    '}',
+                );
+                break;
+            }
+            case I_I64_SHR_S: {
+                jsCode.push(
+                    '{',
+                    '    const x = stack.pop();',
+                    '    stack.push(stack.pop() >> x);',
+                    '}',
+                );
+                break;
+            }
+            case I_I64_SHR_U: {
+                jsCode.push(
+                    '{',
+                    '    const x = stack.pop();',
+                    '    stack.push(stack.pop() >>> x);',
+                    '}',
+                );
                 break;
             }
             case I_F32_ABS: {
@@ -808,6 +895,10 @@ export const compileAotHelper = async (
                 jsCode.push('stack.push(stack.pop() * stack.pop());');
                 break;
             }
+            case I_I32_WRAP_I64: {
+                jsCode.push('stack.push(Number(stack.pop() & 0xFFFFFFFFn));');
+                break;
+            }
             case I_I32_TRUNC_F32_S: {
                 jsCode.push('stack.push(Math.trunc(stack.pop()));');
                 break;
@@ -818,6 +909,11 @@ export const compileAotHelper = async (
             }
             case I_I32_TRUNC_F64_U: {
                 jsCode.push('stack.push(Math.trunc(stack.pop()));');
+                break;
+            }
+            case I_I64_EXTEND_I32_U: {
+                // TODO: this is wrong since it does signed extend -1 -> -1n
+                jsCode.push('stack.push(BigInt(stack.pop()));');
                 break;
             }
             case I_F32_CONVERT_I32_S: {
@@ -958,7 +1054,7 @@ export const compileAot = async (wasmBytes: Uint8Array, debug_mode: boolean = fa
     if (importedMemories.length > 0) {
         if (importedMemories.length > 1) throw new Error('maximum one memory import is supported currently');
         const importedMemory = importedMemories[0];
-        console.log('DEBUG importedMemory', importedMemory);
+        if (debug_mode) console.log('DEBUG importedMemory', importedMemory);
         importJsCode.push(
             `if (!import_object['${importedMemory.module}'] || !import_object['${importedMemory.module}']['${importedMemory.name}']) {`,
             `    throw new Error('failed to find the memory import in the import object: ${importedMemory.module} ${importedMemory.name}');`,
@@ -971,7 +1067,7 @@ export const compileAot = async (wasmBytes: Uint8Array, debug_mode: boolean = fa
     const importedFuncs = ast.imports.filter(x => x.type === MyWasmModuleImportExportType.FUNC);
     const importedFuncsTypeIdxs = importedFuncs.map(x => x.typeIdx);
     const importedFuncsLength = importedFuncs.length;
-    console.log('importedFuncsTypeIdxs', importedFuncsTypeIdxs, 'importedFuncsLength', importedFuncsLength);
+    if (debug_mode) console.log('DEBUG importedFuncsTypeIdxs', importedFuncsTypeIdxs, 'importedFuncsLength', importedFuncsLength);
     importedFuncs.forEach((x, i) => {
         importJsCode.push(
             `if (!import_object['${x.module}'] || !import_object['${x.module}']['${x.name}']) {`,
@@ -980,7 +1076,7 @@ export const compileAot = async (wasmBytes: Uint8Array, debug_mode: boolean = fa
             `const func${i} = import_object['${x.module}']['${x.name}'];`,
         );
     });
-    console.log('importJsCode', importJsCode);
+    if (debug_mode) console.log('DEBUG importJsCode', importJsCode);
     allJsCodeLines.push(...importJsCode);
 
     // globals
@@ -999,7 +1095,7 @@ export const compileAot = async (wasmBytes: Uint8Array, debug_mode: boolean = fa
             throw new Error('bad expression, invalid opCode');
         }
     };
-    const globalsJsCode = ast.globals.map((g, i) => `${g.mut ? 'let' : 'const'} global${importedGlobalsLength + i} = ${eval_global_expr(g)};`);
+    const globalsJsCode = ast.globals.map((g, i) => `${g.mut ? 'let' : 'const'} global${importedGlobalsLength + i} = ${eval_global_expr(g)}${g.type === ValueType.I64 ? 'n' : ''};`);
     allJsCodeLines.push(...globalsJsCode);
 
     // built-in memories
@@ -1008,12 +1104,12 @@ export const compileAot = async (wasmBytes: Uint8Array, debug_mode: boolean = fa
 
     // data sections
     const dataJsCode = ast.datas.map(x => {
-        console.log('ast.datas.map(x', x);
+        if (debug_mode) console.log('ast.datas.map(x', x);
         if (x.type !== 'active') throw new Error('TODO: support passive data sections');
         const offset = x.offsetExpr[0].data as number;
         return `memory0.set([${x.data}], ${offset});`;
     });
-    console.log('dataJsCode', dataJsCode);
+    if (debug_mode) console.log('DEBUG dataJsCode', dataJsCode);
     allJsCodeLines.push(...dataJsCode);
 
     // function bodies
@@ -1021,14 +1117,18 @@ export const compileAot = async (wasmBytes: Uint8Array, debug_mode: boolean = fa
         const func_type_idx = ast.funcs[i];
         const func_type = ast.types[func_type_idx];
         const code = ast.codes[i];
-        const localsJsCode = code.locals.map((x, i) => `    let local${func_type.params.length + i} = 0;`);
-        console.log('----------------------------------------------');
-        console.log('DEBUG compiling function, i:', i, 'func_type:', func_type, 'code:', code);
+        // TODO: better local declaration/initialization
+        const localsJsCode = code.locals.map((x, i) => `    let local${func_type.params.length + i} = ${x === ValueType.I64 ? '0n' : '0'};`);
+        if (debug_mode) {
+            console.log('----------------------------------------------');
+            console.log('DEBUG compiling function, i:', i, 'func_type:', func_type, 'code:', code);
+        }
         const func_params = func_type.params.length === 0 ? '' : range(func_type.params.length).map(x => `local${x}`).join(', ');
         const funcJSCode = [
             `function func${importedFuncsLength + i}(${func_params}) {`,
             // `    console.log("compiledFunc${i}");`,
             '    const stack = [];',
+            // debug_mode ? '    debugger;' : '',
             ...localsJsCode,
         ];
         const ctx = newCompilationContext();

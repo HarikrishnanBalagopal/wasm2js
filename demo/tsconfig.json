@@ -4,7 +4,7 @@
     "allowJs": false,
     "target": "es2020",
     "alwaysStrict": true,
-    "noImplicitAny": true,
+    // "noImplicitAny": true,
     "sourceMap": true,
     "moduleResolution": "node",
     "declaration": true

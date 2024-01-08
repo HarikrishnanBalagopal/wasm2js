@@ -11,6 +11,7 @@ import { setupRayAotDemo } from "./demo/rayaot";
 import { setupSnakeAotDemo } from "./demo/snakeaot";
 import { setupTestAddVec2AotDemo } from "./demo/testaddvec2aot";
 import { setupFibAotDemo } from "./demo/fibaot";
+import { setupMatch3AotDemo } from "./demo/match3aot";
 
 const setup = () => {
     console.log('setup start');
@@ -52,7 +53,8 @@ const setup = () => {
         if (!response.ok) throw new Error('failed to fetch');
         const wasmBytes = new Uint8Array(await response.arrayBuffer());
         console.log('wasm module bytes:', wasmBytes);
-        const myAotCompiledJSCode = await compileAot(wasmBytes, true);
+        // const myAotCompiledJSCode = await compileAot(wasmBytes, true);
+        const myAotCompiledJSCode = await compileAot(wasmBytes, false);
         console.log('myAotCompiledJSCode:');
         console.log(myAotCompiledJSCode);
 
@@ -65,6 +67,7 @@ const setup = () => {
         if (target === 'maze') return await setupMazeAotDemo(myAotCompiledJSCode);
         if (target === 'mod') return await setupModAotDemo(myAotCompiledJSCode);
         if (target === 'ray') return await setupRayAotDemo(myAotCompiledJSCode);
+        if (target === 'match3') return await setupMatch3AotDemo(myAotCompiledJSCode);
         if (target === 'badgb') return await setupBadGBAotDemo(myAotCompiledJSCode);
         throw new Error(`unsupported demo: ${target}`);
     });
