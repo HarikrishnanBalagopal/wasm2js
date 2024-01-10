@@ -3,16 +3,15 @@ import {
     I_DATA_DROP, I_DROP, I_ELSE, I_END, I_F32_ABS, I_F32_ADD, I_F32_CONST, I_F32_CONVERT_I32_S, I_F32_CONVERT_I32_U,
     I_F32_COPYSIGN, I_F32_DIV, I_F32_FLOOR, I_F32_GE, I_F32_GT, I_F32_LE, I_F32_LOAD, I_F32_LT, I_F32_MAX,
     I_F32_MIN, I_F32_MUL, I_F32_NE, I_F32_NEG, I_F32_SQRT, I_F32_STORE, I_F32_SUB, I_F32_TRUNC, I_F64_CONST, I_F64_MUL,
-    I_F64_NEAREST, I_GLOBAL_GET, I_GLOBAL_SET, I_I32_ADD, I_I32_AND, I_I32_CONST, I_I32_DIV_S, I_I32_DIV_U,
+    I_F64_NEAREST, I_GLOBAL_GET, I_GLOBAL_SET, I_I32_ADD, I_I32_AND, I_I32_CONST, I_I32_CTZ, I_I32_DIV_S, I_I32_DIV_U,
     I_I32_EQ, I_I32_EQZ, I_I32_EXTEND_8_S, I_I32_GE_S, I_I32_GE_U, I_I32_GT_S, I_I32_GT_U, I_I32_LE_S, I_I32_LE_U,
     I_I32_LOAD, I_I32_LOAD_16_S, I_I32_LOAD_16_U, I_I32_LOAD_8_S, I_I32_LOAD_8_U, I_I32_LT_S, I_I32_LT_U, I_I32_MUL,
     I_I32_NE, I_I32_OR, I_I32_REM_S, I_I32_REM_U, I_I32_ROTL, I_I32_SHL, I_I32_SHR_S, I_I32_SHR_U, I_I32_STORE,
     I_I32_STORE_16, I_I32_STORE_8, I_I32_SUB, I_I32_TRUNC_F32_S, I_I32_TRUNC_F32_U, I_I32_TRUNC_F64_U,
-    I_I32_TRUNC_SAT_F32_S, I_I32_TRUNC_SAT_F32_U, I_I32_TRUNC_SAT_F64_S, I_I32_TRUNC_SAT_F64_U, I_I32_WRAP_I64, I_I32_XOR,
-    I_I64_ADD,
-    I_I64_AND, I_I64_CONST, I_I64_CTZ, I_I64_EQ, I_I64_EQZ, I_I64_EXTEND_I32_U, I_I64_LOAD, I_I64_LOAD_32_U, I_I64_MUL, I_I64_NE, I_I64_OR, I_I64_POPCNT, I_I64_SHL, I_I64_SHR_S, I_I64_SHR_U, I_I64_STORE,
-    I_I64_STORE_32,
-    I_I64_SUB,
+    I_I32_TRUNC_SAT_F32_S, I_I32_TRUNC_SAT_F32_U, I_I32_TRUNC_SAT_F64_S, I_I32_TRUNC_SAT_F64_U, I_I32_WRAP_I64,
+    I_I32_XOR, I_I64_ADD,
+    I_I64_AND, I_I64_CONST, I_I64_CTZ, I_I64_EQ, I_I64_EQZ, I_I64_EXTEND_I32_U, I_I64_LOAD, I_I64_LOAD_32_U, I_I64_MUL,
+    I_I64_NE, I_I64_OR, I_I64_POPCNT, I_I64_SHL, I_I64_SHR_S, I_I64_SHR_U, I_I64_STORE, I_I64_STORE_32, I_I64_SUB,
     I_I64_TRUNC_SAT_F32_S, I_I64_TRUNC_SAT_F32_U, I_I64_TRUNC_SAT_F64_S, I_I64_TRUNC_SAT_F64_U, I_I64_XOR, I_IF,
     I_LOCAL_GET, I_LOCAL_SET, I_LOCAL_TEE, I_LOOP, I_MEMORY_COPY, I_MEMORY_FILL, I_MEMORY_INIT, I_NOP, I_RETURN,
     I_SELECT, I_UNREACHABLE, I_VARIABLE_0XFC, I_VARIABLE_0XFD,
@@ -21,7 +20,10 @@ import {
     MyParserAst, MyParserAstCodeInst, MyWasmImportObject, MyWasmInstance,
     MyWasmModuleBlockType, MyWasmModuleGlobal, MyWasmModuleImportExportType, ParserResultType,
 } from "./types.js";
-import { PAGE_SIZE, MY_CTZ_FN } from "../common/constants.js";
+import {
+    PAGE_SIZE, MY_CTZ_FN, MOST_NEG_S_I64, MOST_POS_U_I64, MOST_POS_S_I64,
+    MOST_NEG_S_I32, MOST_POS_S_I32, MOST_POS_U_I32,
+} from "../common/constants.js";
 import { safeJSONstringify } from "../common/utils.js";
 import { ValueType } from "../common/types.js";
 import { PModule } from "./parser.js";
@@ -63,6 +65,7 @@ export const compileAotHelper = async (
     ctx: CompilationContext,
     body: Array<MyParserAstCodeInst>,
     debug_mode: boolean = false,
+    strict_maths: boolean = false,
 ): Promise<Array<string>> => {
     if (debug_mode) {
         console.log('DEBUG compileAotHelper called with ctx:', JSON.stringify(ctx), 'and body:', body);
@@ -99,7 +102,7 @@ export const compileAotHelper = async (
                         console.log('Warning: SPECIAL CASE of I32 block type');
                         const block_idx = `block_with_result_${ctx.newId++}`;
                         ctx.stack.push({ 'is_loop': false, 'label': block_idx });
-                        const blockJsCode = await compileAotHelper(ctx, instData.body, debug_mode);
+                        const blockJsCode = await compileAotHelper(ctx, instData.body, debug_mode, strict_maths);
                         jsCode.push(`${block_idx}: {`);
                         jsCode.push(...blockJsCode.map(x => '    ' + x));
                         jsCode.push('}');
@@ -109,7 +112,7 @@ export const compileAotHelper = async (
                 }
                 const block_idx = `block_${ctx.newId++}`;
                 ctx.stack.push({ 'is_loop': false, 'label': block_idx });
-                const blockJsCode = await compileAotHelper(ctx, instData.body, debug_mode);
+                const blockJsCode = await compileAotHelper(ctx, instData.body, debug_mode, strict_maths);
                 jsCode.push(`${block_idx}: {`);
                 jsCode.push(...blockJsCode.map(x => '    ' + x));
                 jsCode.push('}');
@@ -122,8 +125,13 @@ export const compileAotHelper = async (
                 if (instData.blockType !== BLOCK_TYPE_EMPTY) throw new Error('TODO: implement non-empty loop type');
                 const block_idx = `loop_${ctx.newId++}`;
                 ctx.stack.push({ 'is_loop': true, 'label': block_idx });
-                const loopJsCode = await compileAotHelper(ctx, instData.body, debug_mode);
+                const loopJsCode = await compileAotHelper(ctx, instData.body, debug_mode, strict_maths);
+                // const rand_id = Math.floor(Math.random() * 10000);
+                // const loop_counter_var = `__my_debug_loop_counter_${rand_id}`;
+                // jsCode.push(`let ${loop_counter_var} = 0;`);
                 jsCode.push(`${block_idx}: while (true) {`);
+                // jsCode.push(`    if(${loop_counter_var} % 1000 === 0) console.log("I_LOOP DEBUG ${loop_counter_var}", ${loop_counter_var});`);
+                // jsCode.push(`    ${loop_counter_var}++;`);
                 jsCode.push(...loopJsCode.map(x => '    ' + x));
                 jsCode.push(
                     `    break ${block_idx};`,
@@ -138,7 +146,7 @@ export const compileAotHelper = async (
                 const block_idx = `if_${ctx.newId++}`;
                 ctx.stack.push({ 'is_loop': false, 'label': block_idx });
                 jsCode.push(`${block_idx}: if (stack.pop() !== 0) {`);
-                const trueJsCode = await compileAotHelper(ctx, instData.trueBody, debug_mode);
+                const trueJsCode = await compileAotHelper(ctx, instData.trueBody, debug_mode, strict_maths);
                 jsCode.push(...trueJsCode.map(x => '    ' + x));
                 if (instData.falseBody) {
                     // console.log('***********************');
@@ -148,7 +156,7 @@ export const compileAotHelper = async (
                     // console.log('***********************');
                     // ctx.stack.push({ 'is_loop': false, 'label': block_idx });
                     jsCode.push('} else {');
-                    const falseJsCode = await compileAotHelper(ctx, instData.falseBody, debug_mode);
+                    const falseJsCode = await compileAotHelper(ctx, instData.falseBody, debug_mode, strict_maths);
                     jsCode.push(...falseJsCode.map(x => '    ' + x));
                     // console.log('!!!!!!!!!!!!!!!!!!!!!!!');
                     // console.log('!!!!!!!!!!!!!!!!!!!!!!!');
@@ -255,7 +263,7 @@ export const compileAotHelper = async (
                 break;
             }
             case I_RETURN: {
-                console.log('DEBUG I_RETURN inst:', inst);
+                // console.log('DEBUG I_RETURN inst:', inst);
                 // https://developer.mozilla.org/en-US/docs/WebAssembly/Reference/Control_flow/return
                 const func_type = ctx.types[ctx.func_type_idx];
                 if (func_type.results.length === 0) {
@@ -303,6 +311,7 @@ export const compileAotHelper = async (
                         jsCode.push(
                             '{',
                             `    const args = stack.slice(-${func_type.params.length});`,
+                            // '    console.log("I_CALL DEBUG args:", args);', // TODO: DEBUG
                             ...range(func_type.params.length).map(() => '    stack.pop();'),
                             `    func${funcIdx}(...args);`,
                             '}',
@@ -318,8 +327,12 @@ export const compileAotHelper = async (
                         jsCode.push(
                             '{',
                             `    const args = stack.slice(-${func_type.params.length});`,
+                            // '    console.log("I_CALL DEBUG args:", args);', // TODO: DEBUG
                             ...range(func_type.params.length).map(() => '    stack.pop();'),
-                            `    stack.push(func${funcIdx}(...args));`,
+                            // `    stack.push(func${funcIdx}(...args));`,
+                            `    const result = func${funcIdx}(...args);`,
+                            '    stack.push(result);', // TODO: DEBUG
+                            // '    console.log("I_CALL DEBUG result:", result);', // TODO: DEBUG
                             '}',
                         );
                     }
@@ -349,17 +362,25 @@ export const compileAotHelper = async (
                     '    const condition = stack.pop();',
                     '    const x2 = stack.pop();',
                     '    const x1 = stack.pop();',
-                    '    stack.push(condition !== 0 ? x1 : x2)',
+                    '    stack.push(condition !== 0 ? x1 : x2);',
                     '}',
                 )
                 break;
             }
             case I_LOCAL_GET: {
+                // jsCode.push(`stack.push(local${inst.data});`);
+                // jsCode.push(`if (${inst.data} === 2) { console.log("I_LOCAL_GET DEBUG local${inst.data}", local${inst.data}); }`);
                 jsCode.push(`stack.push(local${inst.data});`);
                 break;
             }
             case I_LOCAL_SET: {
-                jsCode.push(`local${inst.data} = stack.pop();`);
+                // jsCode.push(`local${inst.data} = stack.pop();`);
+                jsCode.push('{');
+                jsCode.push(`    local${inst.data} = stack.pop();`);
+                // jsCode.push(`    if (${inst.data} === 2) { console.log("I_LOCAL_SET local${inst.data}", local${inst.data}); }`);
+                // jsCode.push(`    console.log("I_LOCAL_SET local${inst.data}", local${inst.data});`);
+                jsCode.push(`    if(local${inst.data} < ${MOST_NEG_S_I64}n) throw new Error('I_LOCAL_SET DEBUG local${inst.data} less than most negative');`);
+                jsCode.push('}');
                 break;
             }
             case I_LOCAL_TEE: {
@@ -367,7 +388,13 @@ export const compileAotHelper = async (
                 break;
             }
             case I_GLOBAL_GET: {
-                jsCode.push(`stack.push(global${inst.data});`);
+                // jsCode.push(`stack.push(global${inst.data});`);
+                jsCode.push('{');
+                jsCode.push(`    const g = global${inst.data};`);
+                jsCode.push('    stack.push(g);');
+                // jsCode.push('    console.log("I_GLOBAL_GET g", g);');
+                jsCode.push(`    if(g < ${MOST_NEG_S_I64}n) throw new Error('I_GLOBAL_GET g less than most negative');`);
+                jsCode.push('}');
                 break;
             }
             case I_GLOBAL_SET: {
@@ -394,10 +421,11 @@ export const compileAotHelper = async (
                 jsCode.push(`        stack.push(new DataView(memory0.buffer, o + x, 4).getFloat32(0, true));`);
                 jsCode.push('    } catch(e) {');
                 // jsCode.push('        throw new Error(`failed on I_F32_LOAD ${e}`);');
-                jsCode.push(`        console.log('x', x);`);
-                jsCode.push(`        console.log('o', o);`);
-                jsCode.push(`        console.log('memory0', memory0);`);
-                jsCode.push('        debugger;');
+                // jsCode.push(`        console.log('x', x);`);
+                // jsCode.push(`        console.log('o', o);`);
+                // jsCode.push(`        console.log('memory0', memory0);`);
+                // jsCode.push('        debugger;');
+                jsCode.push('        throw new Error("DEBUG getFloat32");');
                 jsCode.push('    }');
                 jsCode.push('}');
                 break;
@@ -405,11 +433,18 @@ export const compileAotHelper = async (
             case I_I32_LOAD_8_S: {
                 const instData = inst.data as { "align": number; "offset": number; };
                 jsCode.push(`stack.push(new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 1).getInt8(0));`);
+                // jsCode.push('console.log("I_I32_LOAD_8_S DEBUG stack top:", stack[stack.length-1]);');
                 break;
             }
             case I_I32_LOAD_8_U: {
                 const instData = inst.data as { "align": number; "offset": number; };
                 jsCode.push(`stack.push(new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 1).getUint8(0));`);
+                // jsCode.push('{');
+                // jsCode.push('    const off = stack.pop();');
+                // jsCode.push(`    const res = new DataView(memory0.buffer, ${instData.offset} + off, 1).getUint8(0);`);
+                // jsCode.push(`    stack.push(res);`);
+                // jsCode.push('    console.log("off", off, "res", res);');
+                // jsCode.push('}');
                 break;
             }
             case I_I32_LOAD_16_S: {
@@ -432,7 +467,16 @@ export const compileAotHelper = async (
                 jsCode.push(
                     '{',
                     '    const x = stack.pop();',
-                    `    new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 4).setInt32(0, x, true);`,
+                    '    const a = stack.pop();',
+                    `    const offset = ${instData.offset};`,
+                    '    const address = offset + a;',
+                    '    if (address < 0) {',
+                    '        console.error("I_I32_STORE DEBUG a", a, "offset", offset, "address", address);',
+                    '        debugger;',
+                    '        throw new Error("I_I32_STORE the address is negative");',
+                    '    }',
+                    `    new DataView(memory0.buffer, address, 4).setInt32(0, x, true);`,
+                    // `    new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 4).setInt32(0, x, true);`,
                     '}',
                 );
                 break;
@@ -525,12 +569,22 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I32_LT_U: {
-                jsCode.push(
-                    '{',
-                    '    const x = stack.pop();',
-                    '    stack.push(stack.pop() < x ? 1 : 0);',
-                    '}',
-                );
+                if (!strict_maths) {
+                    jsCode.push(
+                        '{',
+                        '    const x = stack.pop();',
+                        '    stack.push(stack.pop() < x ? 1 : 0);',
+                        '}',
+                    );
+                } else {
+                    jsCode.push(
+                        '{',
+                        '    const y = BigInt.asUintN(32, BigInt(stack.pop()));',
+                        '    const x = BigInt.asUintN(32, BigInt(stack.pop()));',
+                        '    stack.push(x < y ? 1 : 0);',
+                        '}',
+                    );
+                }
                 break;
             }
             case I_I32_GT_S: {
@@ -543,12 +597,22 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I32_GT_U: {
-                jsCode.push(
-                    '{',
-                    '    const x = stack.pop();',
-                    '    stack.push(stack.pop() > x ? 1 : 0);',
-                    '}',
-                );
+                if (!strict_maths) {
+                    jsCode.push(
+                        '{',
+                        '    const x = stack.pop();',
+                        '    stack.push(stack.pop() > x ? 1 : 0);',
+                        '}',
+                    );
+                } else {
+                    jsCode.push(
+                        '{',
+                        '    const y = BigInt.asUintN(32, BigInt(stack.pop()));',
+                        '    const x = BigInt.asUintN(32, BigInt(stack.pop()));',
+                        '    stack.push(x > y ? 1 : 0);',
+                        '}',
+                    );
+                }
                 break;
             }
             case I_I32_LE_S: {
@@ -561,12 +625,22 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I32_LE_U: {
-                jsCode.push(
-                    '{',
-                    '    const x = stack.pop();',
-                    '    stack.push(stack.pop() <= x ? 1 : 0);',
-                    '}',
-                );
+                if (!strict_maths) {
+                    jsCode.push(
+                        '{',
+                        '    const x = stack.pop();',
+                        '    stack.push(stack.pop() <= x ? 1 : 0);',
+                        '}',
+                    );
+                } else {
+                    jsCode.push(
+                        '{',
+                        '    const y = BigInt.asUintN(32, BigInt(stack.pop()));',
+                        '    const x = BigInt.asUintN(32, BigInt(stack.pop()));',
+                        '    stack.push(x <= y ? 1 : 0);',
+                        '}',
+                    );
+                }
                 break;
             }
             case I_I32_GE_S: {
@@ -579,12 +653,22 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I32_GE_U: {
-                jsCode.push(
-                    '{',
-                    '    const x = stack.pop();',
-                    '    stack.push(stack.pop() >= x ? 1 : 0);',
-                    '}',
-                );
+                if (!strict_maths) {
+                    jsCode.push(
+                        '{',
+                        '    const x = stack.pop();',
+                        '    stack.push(stack.pop() >= x ? 1 : 0);',
+                        '}',
+                    );
+                } else {
+                    jsCode.push(
+                        '{',
+                        '    const y = BigInt.asUintN(32, BigInt(stack.pop()));',
+                        '    const x = BigInt.asUintN(32, BigInt(stack.pop()));',
+                        '    stack.push(x >= y ? 1 : 0);',
+                        '}',
+                    );
+                }
                 break;
             }
             case I_I64_EQZ: {
@@ -639,39 +723,90 @@ export const compileAotHelper = async (
                 );
                 break;
             }
+            case I_I32_CTZ: {
+                jsCode.push(`stack.push(${MY_CTZ_FN}(stack.pop(), false));`);
+                break;
+            }
             case I_I32_ADD: {
-                jsCode.push('stack.push(stack.pop() + stack.pop());');
+                // jsCode.push('stack.push(stack.pop() + stack.pop());');
+                jsCode.push(
+                    '{',
+                    // '    const sp_x = stack.pop() + stack.pop();',
+                    '    const y = stack.pop();',
+                    '    const x = stack.pop();',
+                    '    const sp_x = x + y;',
+                    `    const sp_x_1 = (sp_x < ${MOST_NEG_S_I32}) ? (sp_x + ${MOST_POS_U_I32}) : sp_x;`,
+                    `    const sp_x_2 = (sp_x_1 > ${MOST_POS_S_I32}) ? (sp_x_1 - ${MOST_POS_U_I32}) : sp_x_1;`,
+                    '    stack.push(sp_x_2);',
+                    // '    if(sp_x_2 < 0) console.log("I_I32_ADD x", x, "y", y, "sp_x", sp_x, "sp_x_1", sp_x_1, "sp_x_2", sp_x_2);',
+                    '}',
+                );
                 break;
             }
             case I_I32_SUB: {
                 jsCode.push(
                     '{',
                     '    const x = stack.pop();',
-                    '    stack.push(stack.pop() - x);',
+                    '    const sp_x = stack.pop() - x;',
+                    `    const sp_x_1 = (sp_x < ${MOST_NEG_S_I32}) ? (sp_x + ${MOST_POS_U_I32}) : sp_x;`,
+                    `    const sp_x_2 = (sp_x_1 > ${MOST_POS_S_I32}) ? (sp_x_1 - ${MOST_POS_U_I32}) : sp_x_1;`,
+                    '    stack.push(sp_x_2);',
                     '}',
                 );
                 break;
             }
             case I_I32_MUL: {
-                jsCode.push('stack.push(stack.pop() * stack.pop());');
+                // jsCode.push('stack.push(stack.pop() * stack.pop());');
+                jsCode.push(
+                    '{',
+                    `    const sp_x = Number(BigInt.asIntN(32, BigInt(stack.pop() * stack.pop())));`,
+                    `    const sp_x_1 = (sp_x < ${MOST_NEG_S_I32}) ? (sp_x + ${MOST_POS_U_I32}) : sp_x;`,
+                    `    const sp_x_2 = (sp_x_1 > ${MOST_POS_S_I32}) ? (sp_x_1 - ${MOST_POS_U_I32}) : sp_x_1;`,
+                    '    stack.push(sp_x_2);',
+                    '}',
+                );
                 break;
             }
             case I_I32_DIV_S: {
-                jsCode.push(
-                    '{',
-                    '    const x = stack.pop();',
-                    '    stack.push(Math.floor(stack.pop() / x));',
-                    '}',
-                );
+                if (!strict_maths) {
+                    jsCode.push(
+                        '{',
+                        '    const x = stack.pop();',
+                        // DIV_S truncates towards 0 ((-9n)/(10n) === 0n)
+                        // https://webassembly.github.io/spec/core/exec/numerics.html#xref-exec-numerics-op-idiv-s-mathrm-idiv-s-n-i-1-i-2
+                        '    stack.push(Math.trunc(stack.pop() / x));',
+                        '}',
+                    );
+                } else {
+                    jsCode.push(
+                        '{',
+                        '    const y = BigInt.asIntN(32, BigInt(stack.pop()));',
+                        '    const x = BigInt.asIntN(32, BigInt(stack.pop()));',
+                        '    stack.push(Number(x / y));',
+                        '}',
+                    );
+                }
                 break;
             }
             case I_I32_DIV_U: {
-                jsCode.push(
-                    '{',
-                    '    const x = stack.pop();',
-                    '    stack.push(Math.floor(stack.pop() / x));',
-                    '}',
-                );
+                if (!strict_maths) {
+                    jsCode.push(
+                        '{',
+                        '    const x = stack.pop();',
+                        // DIV_U truncates towards 0 ((9n)/(10n) === 0n)
+                        // https://webassembly.github.io/spec/core/exec/numerics.html#xref-exec-numerics-op-idiv-u-mathrm-idiv-u-n-i-1-i-2
+                        '    stack.push(Math.trunc(stack.pop() / x));',
+                        '}',
+                    );
+                } else {
+                    jsCode.push(
+                        '{',
+                        '    const y = BigInt.asUintN(32, BigInt(stack.pop()));',
+                        '    const x = BigInt.asUintN(32, BigInt(stack.pop()));',
+                        '    stack.push(Number(x / y));',
+                        '}',
+                    );
+                }
                 break;
             }
             case I_I32_REM_S: {
@@ -701,14 +836,24 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I32_XOR: {
-                jsCode.push('stack.push(stack.pop() ^ stack.pop());');
+                if (!strict_maths) {
+                    jsCode.push(
+                        'stack.push(stack.pop() ^ stack.pop());',
+                    );
+                } else {
+                    jsCode.push(
+                        'const x2 = Number(BigInt.asUintN(32, BigInt(stack.pop())));',
+                        'const x1 = Number(BigInt.asUintN(32, BigInt(stack.pop())));',
+                        'stack.push(x1 ^ x2);',
+                    );
+                }
                 break;
             }
             case I_I32_SHL: {
                 jsCode.push(
                     '{',
                     '    const x = stack.pop();',
-                    '    stack.push(stack.pop() << x);',
+                    '    stack.push((stack.pop() << x) & 0xFFFFFFFF);',
                     '}',
                 );
                 break;
@@ -725,8 +870,12 @@ export const compileAotHelper = async (
             case I_I32_SHR_U: {
                 jsCode.push(
                     '{',
-                    '    const x = stack.pop();',
-                    '    stack.push(stack.pop() >>> x);',
+                    '    const by = stack.pop();',
+                    // '    stack.push(stack.pop() >>> x);',
+                    '    const value = stack.pop();',
+                    '    const shifted = value >>> by;',
+                    '    stack.push(shifted);',
+                    // '    console.log("I_I32_SHR_U DEBUG value", value, "by", by, "shifted", shifted);',
                     '}',
                 );
                 break;
@@ -742,38 +891,74 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I64_CTZ: {
-                jsCode.push(`stack.push(BigInt(${MY_CTZ_FN}(stack.pop())));`);
+                jsCode.push(`stack.push(BigInt(${MY_CTZ_FN}(stack.pop(), true)));`);
                 break;
             }
             case I_I64_POPCNT: {
-                jsCode.push('stack.push(stack.pop().toString(2).split("").filter(x => x==="1").length);');
+                // jsCode.push('stack.push(stack.pop().toString(2).split("").filter(x => x==="1").length);');
+                jsCode.push('stack.push(BigInt(BigInt.asUintN(64, stack.pop()).toString(2).split("").filter(x => x==="1").length));');
                 break;
             }
             case I_I64_ADD: {
-                jsCode.push('stack.push(stack.pop() + stack.pop());');
+                // jsCode.push('stack.push(stack.pop() + stack.pop());');
+                jsCode.push(
+                    '{',
+                    '    const sp_x = stack.pop() + stack.pop();',
+                    `    const sp_x_1 = (sp_x < ${MOST_NEG_S_I64}n) ? (sp_x + ${MOST_POS_U_I64}n) : sp_x;`,
+                    `    const sp_x_2 = (sp_x_1 > ${MOST_POS_S_I64}n) ? (sp_x_1 - ${MOST_POS_U_I64}n) : sp_x_1;`,
+                    '    stack.push(sp_x_2);',
+                    '}',
+                );
                 break;
             }
             case I_I64_SUB: {
                 jsCode.push(
                     '{',
                     '    const x = stack.pop();',
-                    '    stack.push(stack.pop() - x);',
+                    // '    stack.push(stack.pop() - x);',
+                    '    const sp = stack.pop();',
+                    '    const sp_x = sp - x;',
+                    // '    console.log("I_I64_SUB x", x, "sp", sp, "sp_x", sp_x);',
+                    `    const sp_x_1 = (sp_x < ${MOST_NEG_S_I64}n) ? (sp_x + ${MOST_POS_U_I64}n) : sp_x;`,
+                    `    const sp_x_2 = (sp_x_1 > ${MOST_POS_S_I64}n) ? (sp_x_1 - ${MOST_POS_U_I64}n) : sp_x_1;`,
+                    '    stack.push(sp_x_2);',
+                    // '    console.log("I_I64_SUB x", x, "sp", sp, "sp_x", sp_x, "sp_x_1", sp_x_2, "sp_x_2", sp_x_2);',
+                    `    if(x < ${MOST_NEG_S_I64}n) throw new Error('I_I64_SUB x less than most negative');`,
+                    `    if(sp < ${MOST_NEG_S_I64}n) throw new Error('I_I64_SUB sp less than most negative');`,
+                    `    if(sp_x_2 < ${MOST_NEG_S_I64}n) throw new Error('I_I64_SUB sp_x_2 less than most negative');`,
                     '}',
                 );
                 break;
             }
             case I_I64_MUL: {
-                jsCode.push('stack.push(stack.pop() * stack.pop());');
+                // jsCode.push('stack.push(stack.pop() * stack.pop());');
+                jsCode.push(
+                    '{',
+                    `    const sp_x = BigInt.asIntN(64, stack.pop() * stack.pop());`,
+                    `    const sp_x_1 = (sp_x < ${MOST_NEG_S_I64}n) ? (sp_x + ${MOST_POS_U_I64}n) : sp_x;`,
+                    `    const sp_x_2 = (sp_x_1 > ${MOST_POS_S_I64}n) ? (sp_x_1 - ${MOST_POS_U_I64}n) : sp_x_1;`,
+                    '    stack.push(sp_x_2);',
+                    '}',
+                );
                 break;
             }
             case I_I64_AND: {
                 // jsCode.push('stack.push(stack.pop() & stack.pop());');
                 jsCode.push('{');
-                jsCode.push('    const x = stack.pop();');
                 jsCode.push('    const y = stack.pop();');
-                jsCode.push('    if(y === (x-1n)) debugger;');
-                jsCode.push('    stack.push(x & y);');
+                jsCode.push('    const x = stack.pop();');
+                jsCode.push('    const z = x & y;');
+                jsCode.push('    stack.push(z);');
+                // jsCode.push('    console.log("I_I64_AND x", x, "y", y, "z", z);');
+                // jsCode.push('    if(x < 0) throw new Error("I_I64_AND x is negative");'); // BigInt.asUintN(bwidth, BigInt(x))
+                // jsCode.push('    if(y < 0) throw new Error("I_I64_AND y is negative");'); // BigInt.asUintN(bwidth, BigInt(x))
+                // jsCode.push('    if(z < 0) throw new Error("I_I64_AND z is negative");'); // BigInt.asUintN(bwidth, BigInt(x))
+                jsCode.push(`    if(x < ${MOST_NEG_S_I64}n) throw new Error('I_I64_AND x less than most negative');`);
+                jsCode.push(`    if(y < ${MOST_NEG_S_I64}n) throw new Error('I_I64_AND y less than most negative');`);
+                jsCode.push(`    if(z < ${MOST_NEG_S_I64}n) throw new Error('I_I64_AND z less than most negative');`);
                 jsCode.push('}');
+                // jsCode.push('    if(y === (x-1n)) debugger;');
+                // jsCode.push('    stack.push(x & y);');
                 break;
             }
             case I_I64_OR: {
@@ -781,14 +966,44 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I64_XOR: {
-                jsCode.push('stack.push(stack.pop() ^ stack.pop());');
+                // jsCode.push('stack.push(stack.pop() ^ stack.pop());');
+                jsCode.push(
+                    '{',
+                    // '    const safeJSONstringify = (x) => JSON.stringify(x, (_, value) => typeof value === "bigint" ? value.toString() : value);',
+                    // '    console.log("stack", safeJSONstringify(stack));',
+                    '    const x2 = BigInt.asUintN(64, stack.pop());',
+                    '    const x1 = BigInt.asUintN(64, stack.pop());',
+                    '    const x3 = x1 ^ x2;',
+                    // '    console.log("I_I64_XOR x1", x1, "x2", x2, "x3", x3);',
+                    `    if(x1 < ${MOST_NEG_S_I64}n) throw new Error('I_I64_XOR x1 less than most negative');`,
+                    `    if(x2 < ${MOST_NEG_S_I64}n) throw new Error('I_I64_XOR x2 less than most negative');`,
+                    // `    if(x3 < ${MOST_NEG_S_I64}n) throw new Error('I_I64_XOR x3 less than most negative');`,
+                    `    if(x3 < ${MOST_NEG_S_I64}n) { console.log("I_I64_XOR x1", x1, "x2", x2, "x3", x3); throw new Error('I_I64_XOR x3 less than most negative'); }`,
+                    '    stack.push(x3);',
+                    // '    console.log("stack", safeJSONstringify(stack));',
+                    '    if(x3 > 0xFFFFFFFFFFFFFFFFn) throw new Error("I_I64_XOR something is wrong");',
+                    '}',
+                );
                 break;
             }
             case I_I64_SHL: {
                 jsCode.push(
                     '{',
-                    '    const x = stack.pop();',
-                    '    stack.push(stack.pop() << x);',
+                    // '    const safeJSONstringify = (x) => JSON.stringify(x, (_, value) => typeof value === "bigint" ? value.toString() : value);',
+                    // '    console.log("I_I64_SHL stack", safeJSONstringify(stack));',
+                    '    const by = stack.pop();',
+                    '    const value = stack.pop();',
+                    // '    console.log("I_I64_SHL value", value, "by", by);',
+                    // '    try {',
+                    '    const shifted = (value << by) & 0xFFFFFFFFFFFFFFFFn;',
+                    // '    console.log("I_I64_SHL shifted", shifted);',
+                    '    stack.push(shifted);',
+                    // '    } catch(e) { console.error("I_I64_SHL", e); debugger; }',
+                    // '    console.log("I_I64_SHL shifted", shifted, "value", value, "by", by);',
+                    // '    console.log("I_I64_SHL stack", safeJSONstringify(stack));',
+                    // '    if(stack.length >= 2 && stack[0] > 0xFFFFFFFFFFFFFFFFn) throw new Error("I_I64_SHL something is wrong");',
+                    // '    stack.push(stack.pop() << x);',
+                    // '    stack.push((stack.pop() << x) & 0xFFFFFFFFFFFFFFFFn);',
                     '}',
                 );
                 break;
@@ -803,10 +1018,12 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I64_SHR_U: {
+                // > TypeError: BigInts have no unsigned right shift, use >> instead
+                // https://stackoverflow.com/questions/71937328/how-to-implement-unsigned-right-shift-for-bigint-in-javascript
                 jsCode.push(
                     '{',
                     '    const x = stack.pop();',
-                    '    stack.push(stack.pop() >>> x);',
+                    '    stack.push(stack.pop() >> x);',
                     '}',
                 );
                 break;
@@ -851,8 +1068,12 @@ export const compileAotHelper = async (
             case I_F32_DIV: {
                 jsCode.push(
                     '{',
+                    '    const y = stack.pop();',
                     '    const x = stack.pop();',
-                    '    stack.push(stack.pop() / x);',
+                    '    const z = x / y;',
+                    // '    console.log("I_F32_DIV DEBUG x", x, "y", y, "z", z);',
+                    '    stack.push(z);',
+                    // '    stack.push(stack.pop() / x);',
                     '}',
                 );
                 break;
@@ -896,24 +1117,74 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I32_WRAP_I64: {
-                jsCode.push('stack.push(Number(stack.pop() & 0xFFFFFFFFn));');
+                // jsCode.push('stack.push(Number(stack.pop() & 0xFFFFFFFFn));');
+                jsCode.push(
+                    '{',
+                    '    const x = stack.pop();',
+                    '    const y = BigInt.asIntN(32, x);',
+                    '    const z = Number(y);',
+                    '    stack.push(z);',
+                    '}',
+                );
                 break;
             }
             case I_I32_TRUNC_F32_S: {
-                jsCode.push('stack.push(Math.trunc(stack.pop()));');
+                // jsCode.push('stack.push(Math.trunc(stack.pop()));');
+                jsCode.push(
+                    '{',
+                    '    const x = stack.pop();',
+                    '    const y = Math.trunc(x);',
+                    // '    console.log("I_I32_TRUNC_F32_S DEBUG x", x, "y", y);',
+                    '    if(!Number.isFinite(x)) throw new Error("I_I32_TRUNC_F32_S not finite");',
+                    // > RuntimeError: float unrepresentable in integer range
+                    `    if(x < ${MOST_NEG_S_I32} || x > ${MOST_POS_S_I32}) throw new Error("I_I32_TRUNC_F32_S float unrepresentable in integer range");`,
+                    '    stack.push(y);',
+                    '}',
+                );
                 break;
             }
             case I_I32_TRUNC_F32_U: {
-                jsCode.push('stack.push(Math.trunc(stack.pop()));');
+                // jsCode.push('stack.push(Math.trunc(stack.pop()));');
+                jsCode.push(
+                    '{',
+                    '    const x = stack.pop();',
+                    '    const y = Math.trunc(x);',
+                    // '    console.log("I_I32_TRUNC_F32_S DEBUG x", x, "y", y);',
+                    '    if(!Number.isFinite(x)) throw new Error("I_I32_TRUNC_F32_S not finite");',
+                    // > RuntimeError: float unrepresentable in integer range
+                    `    if(x < 0 || x > ${MOST_POS_S_I32}) throw new Error("I_I32_TRUNC_F32_S float unrepresentable in integer range");`,
+                    '    stack.push(y);',
+                    '}',
+                );
                 break;
             }
             case I_I32_TRUNC_F64_U: {
-                jsCode.push('stack.push(Math.trunc(stack.pop()));');
+                // jsCode.push('stack.push(Math.trunc(stack.pop()));');
+                jsCode.push(
+                    '{',
+                    '    const x = stack.pop();',
+                    '    const y = Math.trunc(x);',
+                    // '    console.log("I_I32_TRUNC_F32_S DEBUG x", x, "y", y);',
+                    '    if(!Number.isFinite(x)) throw new Error("I_I32_TRUNC_F32_S not finite");',
+                    // > RuntimeError: float unrepresentable in integer range
+                    `    if(x < 0 || x > ${MOST_POS_S_I32}) throw new Error("I_I32_TRUNC_F32_S float unrepresentable in integer range");`,
+                    '    stack.push(y);',
+                    '}',
+                );
                 break;
             }
             case I_I64_EXTEND_I32_U: {
-                // TODO: this is wrong since it does signed extend -1 -> -1n
-                jsCode.push('stack.push(BigInt(stack.pop()));');
+                jsCode.push(
+                    '{',
+                    '    const x = stack.pop();',
+                    // '    console.log("I_I64_EXTEND_I32_U DEBUG x", x);',
+                    '    const y = BigInt(x);',
+                    // '    console.log("I_I64_EXTEND_I32_U DEBUG y", y);',
+                    '    const z = BigInt.asUintN(32, y);',
+                    // '    console.log("I_I64_EXTEND_I32_U DEBUG z", z);',
+                    '    stack.push(z);',
+                    '}',
+                );
                 break;
             }
             case I_F32_CONVERT_I32_S: {
@@ -925,9 +1196,7 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I32_EXTEND_8_S: {
-                // TODO: nothing to do here? already 32 bit or higher?
-                // console.log('inst', inst);
-                // throw new Error('TODO: implement I_I32_EXTEND_8_S');
+                jsCode.push('stack.push(Number(BigInt.asIntN(8, BigInt(stack.pop()))));');
                 break;
             }
             case I_VARIABLE_0XFC: {
@@ -999,7 +1268,11 @@ export const compileAotHelper = async (
     return jsCode;
 };
 
-export const compileAot = async (wasmBytes: Uint8Array, debug_mode: boolean = false): Promise<string> => {
+export const compileAot = async (
+    wasmBytes: Uint8Array,
+    debug_mode: boolean = false,
+    strict_maths: boolean = true,
+): Promise<string> => {
     //, importObject: MyWasmImportObject): Promise<string> => {
     // console.log('DEBUG compileAot called with importObject:', importObject);
     if (debug_mode) console.log('DEBUG compileAot called with wasmBytes:', wasmBytes);
@@ -1014,13 +1287,18 @@ export const compileAot = async (wasmBytes: Uint8Array, debug_mode: boolean = fa
     // imports
     const importJsCode: Array<string> = [
         // TODO: is this the best place for the count trailing zeros helper function?
-        `function ${MY_CTZ_FN}(x) {`,
-        '    const s = x.toString(2);',
+        `function ${MY_CTZ_FN}(x, i64) {`,
+        '    const bwidth = i64 ? 64 : 32;',
+        '    const s = BigInt.asUintN(bwidth, BigInt(x)).toString(2).padStart(bwidth, "0");',
         '    let count = 0;',
         '    for (let i = s.length-1; i >= 0; i--, count++) {',
         '        if (s[i] !== "0") {',
         '            break;',
         '        }',
+        '    }',
+        '    if(count < 0 || count > bwidth) {',
+        '        console.error("x", x, "s", s, "count", count);',
+        '        throw new Error("DEBUG: CTZ count is incorrect");', // DEBUG: TODO
         '    }',
         '    return count;',
         '}',
@@ -1129,6 +1407,7 @@ export const compileAot = async (wasmBytes: Uint8Array, debug_mode: boolean = fa
             // `    console.log("compiledFunc${i}");`,
             '    const stack = [];',
             // debug_mode ? '    debugger;' : '',
+            // `    console.log("------------------------\\nfunc${importedFuncsLength + i} called with:", ${func_params ? func_params + ', ' : ''}"\\n------------------------\\n");`,
             ...localsJsCode,
         ];
         const ctx = newCompilationContext();
@@ -1139,7 +1418,7 @@ export const compileAot = async (wasmBytes: Uint8Array, debug_mode: boolean = fa
         ];
         ctx.types = ast.types;
         ctx.stack.push({ is_loop: false, label: `top_level_func_${i}` });
-        const funcBodyJsCode = await compileAotHelper(ctx, code.body, debug_mode);
+        const funcBodyJsCode = await compileAotHelper(ctx, code.body, debug_mode, strict_maths);
         funcJSCode.push(...funcBodyJsCode.map(x => '    ' + x));
         if (func_type.results.length > 0) {
             if (func_type.results.length === 1) {
