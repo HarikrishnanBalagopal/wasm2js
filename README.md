@@ -21,9 +21,9 @@ a low-level assembly language (WASM) to a high-level language (Javascript).
 ```js
 import { compileAot, instantiateAot } from '@haribala/wasm2js';
 
-const fetch_and_execute = async () => {
+const fetch_and_execute = async (url) => {
     // fetch the wasm binary
-    const res = await fetch('/url/to/myapp.wasm');
+    const res = await fetch(url);
     if (!res.ok) throw new Error('failed to fetch the wasm module');
     const wasmBytes = new Uint8Array(await res.arrayBuffer());
     // compile the wasm binary to javascript code
@@ -40,7 +40,9 @@ const fetch_and_execute = async () => {
     return result;
 };
 
-fetch_and_execute().then(console.log).catch(console.error);
+fetch_and_execute('/url/to/myapp.wasm')
+    .then(console.log)
+    .catch(console.error);
 ```
 
 ## To do
