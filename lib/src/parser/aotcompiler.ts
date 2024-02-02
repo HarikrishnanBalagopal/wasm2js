@@ -12,7 +12,7 @@ import {
     I_I32_TRUNC_SAT_F32_S, I_I32_TRUNC_SAT_F32_U, I_I32_TRUNC_SAT_F64_S, I_I32_TRUNC_SAT_F64_U, I_I32_WRAP_I64,
     I_I32_XOR, I_I64_ADD,
     I_I64_AND, I_I64_CONST, I_I64_CTZ, I_I64_EQ, I_I64_EQZ, I_I64_EXTEND_I32_U, I_I64_LOAD, I_I64_LOAD_32_U, I_I64_MUL,
-    I_I64_NE, I_I64_OR, I_I64_POPCNT, I_I64_SHL, I_I64_SHR_S, I_I64_SHR_U, I_I64_STORE, I_I64_STORE_32, I_I64_SUB,
+    I_I64_NE, I_I64_OR, I_I64_POPCNT, I_I64_ROTR, I_I64_SHL, I_I64_SHR_S, I_I64_SHR_U, I_I64_STORE, I_I64_STORE_32, I_I64_SUB,
     I_I64_TRUNC_SAT_F32_S, I_I64_TRUNC_SAT_F32_U, I_I64_TRUNC_SAT_F64_S, I_I64_TRUNC_SAT_F64_U, I_I64_XOR, I_IF,
     I_LOCAL_GET, I_LOCAL_SET, I_LOCAL_TEE, I_LOOP, I_MEMORY_COPY, I_MEMORY_FILL, I_MEMORY_INIT, I_NOP, I_RETURN,
     I_SELECT, I_UNREACHABLE, I_VARIABLE_0XFC, I_VARIABLE_0XFD,
@@ -902,7 +902,7 @@ export const compileAotHelper = async (
                     '{',
                     '    const x = stack.pop();',
                     '    const v = stack.pop();',
-                    '    stack.push((v << x) | (v >>> (32-x)));',
+                    '    stack.push(((v << x) & 0xFFFFFFFF) | (v >>> (32-x)));',
                     '}',
                 );
                 break;
@@ -1043,6 +1043,17 @@ export const compileAotHelper = async (
                     '    stack.push(stack.pop() >> x);',
                     '}',
                 );
+                break;
+            }
+            case I_I64_ROTR: {
+                jsCode.push(
+                    '{',
+                    '    const x = stack.pop();',
+                    '    const v = stack.pop();',
+                    '    stack.push((v >>> x) | ((v << (64-x) & 0xFFFFFFFFFFFFFFFFn)));',
+                    '}',
+                );
+                // throw new Error('TODO implement I_I64_ROTR');
                 break;
             }
             case I_F32_ABS: {
