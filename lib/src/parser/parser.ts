@@ -1,7 +1,7 @@
 import { decode } from "../common/leb128.js";
 import { TEXT_DECODER } from "../common/utf8.js";
 import {
-    I_BLOCK, I_BR, I_BR_IF, I_BR_TABLE, I_CALL, I_DATA_DROP, I_ELSE, I_END, I_I32_ADD,
+    I_BLOCK, I_BR, I_BR_IF, I_BR_TABLE, I_CALL, I_CALL_INDIRECT, I_DATA_DROP, I_ELSE, I_END, I_I32_ADD,
     I_I32_CONST, I_I32_LOAD, I_I32_LOAD_16_U, I_I32_LOAD_8_U, I_I32_STORE, I_I32_STORE_8,
     I_IF, I_LOCAL_GET, I_LOCAL_SET, I_LOCAL_TEE, I_LOOP, I_MEMORY_COPY, I_MEMORY_FILL,
     I_MEMORY_INIT, I_NOP, I_UNREACHABLE,
@@ -293,7 +293,9 @@ const PFuncType = mapP<Array<unknown>, { type: 'functype', value: FuncType }>(re
 }))(
     PSeq([PByte(0x60, 'functype'), PResultType, PResultType])
 );
-const PLimits: Parser<{ type: 'limits', value: Limits }> = mapP<Array<unknown>, { type: 'limits', value: Limits }>(res => ({
+
+type TPLimits = { type: 'limits', value: Limits };
+const PLimits: Parser<TPLimits> = mapP<Array<unknown>, { type: 'limits', value: Limits }>(res => ({
     type: 'limits',
     value: {
         min: Number((res as Array<U32Obj>)[1].value),
@@ -306,7 +308,10 @@ const PLimits: Parser<{ type: 'limits', value: Limits }> = mapP<Array<unknown>, 
 
 const PMemType = PLimits;
 
-const PTableType = PSeq([PRefType, PLimits]);
+const PTableType = mapP<Array<unknown>, Object>(res => ({
+    'type': res[0],
+    'limits': (res[1] as TPLimits).value,
+}))(PSeq([PRefType, PLimits]));
 
 const PGlobalType = PSeq([PValType, PChoice('mut')([PByte(0x00, 'const'), PByte(0x01, 'var')])]);
 
@@ -345,7 +350,9 @@ const PPlainInst = mapP(res => {
     ),
     PByte(0x0F, 'return'),
     PSeq([PByte(I_CALL, 'call'), PIndex]),
-    PSeq([PByte(0x11, 'call_indirect'), PIndex, PIndex]),
+    mapP<Array<unknown>, [number, object]>(
+        res => [res[0] as number, { 'typeIdx': res[1], 'tableIdx': res[2] }]
+    )(PSeq([PByte(I_CALL_INDIRECT, 'call_indirect'), PIndex, PIndex])),
     // reference
     PSeq([PByte(0xD0, 'ref.null'), PRefType]),
     PByte(0xD1, 'ref.is_null'),

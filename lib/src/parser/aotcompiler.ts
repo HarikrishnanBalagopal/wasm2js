@@ -1,5 +1,6 @@
 import {
     BLOCK_TYPE_EMPTY, DEBUG_INST_HEX_TO_NAME, I_BLOCK, I_BR, I_BR_IF, I_BR_TABLE, I_CALL,
+    I_CALL_INDIRECT,
     I_DATA_DROP, I_DROP, I_ELSE, I_END, I_F32_ABS, I_F32_ADD, I_F32_CONST, I_F32_CONVERT_I32_S, I_F32_CONVERT_I32_U,
     I_F32_COPYSIGN, I_F32_DIV, I_F32_FLOOR, I_F32_GE, I_F32_GT, I_F32_LE, I_F32_LOAD, I_F32_LT, I_F32_MAX,
     I_F32_MIN, I_F32_MUL, I_F32_NE, I_F32_NEG, I_F32_SQRT, I_F32_STORE, I_F32_SUB, I_F32_TRUNC, I_F64_CONST, I_F64_MUL,
@@ -11,7 +12,7 @@ import {
     I_I32_TRUNC_SAT_F32_S, I_I32_TRUNC_SAT_F32_U, I_I32_TRUNC_SAT_F64_S, I_I32_TRUNC_SAT_F64_U, I_I32_WRAP_I64,
     I_I32_XOR, I_I64_ADD,
     I_I64_AND, I_I64_CONST, I_I64_CTZ, I_I64_EQ, I_I64_EQZ, I_I64_EXTEND_I32_U, I_I64_LOAD, I_I64_LOAD_32_U, I_I64_MUL,
-    I_I64_NE, I_I64_OR, I_I64_POPCNT, I_I64_SHL, I_I64_SHR_S, I_I64_SHR_U, I_I64_STORE, I_I64_STORE_32, I_I64_SUB,
+    I_I64_NE, I_I64_OR, I_I64_POPCNT, I_I64_ROTR, I_I64_SHL, I_I64_SHR_S, I_I64_SHR_U, I_I64_STORE, I_I64_STORE_32, I_I64_SUB,
     I_I64_TRUNC_SAT_F32_S, I_I64_TRUNC_SAT_F32_U, I_I64_TRUNC_SAT_F64_S, I_I64_TRUNC_SAT_F64_U, I_I64_XOR, I_IF,
     I_LOCAL_GET, I_LOCAL_SET, I_LOCAL_TEE, I_LOOP, I_MEMORY_COPY, I_MEMORY_FILL, I_MEMORY_INIT, I_NOP, I_RETURN,
     I_SELECT, I_UNREACHABLE, I_VARIABLE_0XFC, I_VARIABLE_0XFD,
@@ -350,6 +351,22 @@ export const compileAotHelper = async (
                     }
                 }
                 // throw new Error('TODO: implement call');
+                break;
+            }
+            case I_CALL_INDIRECT: {
+                // https://webassembly.github.io/spec/core/exec/instructions.html#xref-syntax-instructions-syntax-instr-control-mathsf-call-indirect-x-y
+                console.log('DEBUG I_CALL_INDIRECT inst', inst);
+                const instData = inst.data as { tableIdx: number; typeIdx: number };
+                console.log('DEBUG I_CALL_INDIRECT instData', instData);
+                jsCode.push(
+                    '{',
+                    '    const i = stack.pop();',
+                    `    const f = table${instData.tableIdx}[i]`,
+                    '    const result = f();',
+                    '    stack.push(result);',
+                    '}',
+                );
+                // throw new Error('TODO: implement I_CALL_INDIRECT');
                 break;
             }
             case I_DROP: {
@@ -885,7 +902,7 @@ export const compileAotHelper = async (
                     '{',
                     '    const x = stack.pop();',
                     '    const v = stack.pop();',
-                    '    stack.push((v << x) | (v >>> (32-x)));',
+                    '    stack.push(((v << x) & 0xFFFFFFFF) | (v >>> (32-x)));',
                     '}',
                 );
                 break;
@@ -1026,6 +1043,17 @@ export const compileAotHelper = async (
                     '    stack.push(stack.pop() >> x);',
                     '}',
                 );
+                break;
+            }
+            case I_I64_ROTR: {
+                jsCode.push(
+                    '{',
+                    '    const x = stack.pop();',
+                    '    const v = stack.pop();',
+                    '    stack.push((v >>> x) | ((v << (64-x) & 0xFFFFFFFFFFFFFFFFn)));',
+                    '}',
+                );
+                // throw new Error('TODO implement I_I64_ROTR');
                 break;
             }
             case I_F32_ABS: {
@@ -1390,6 +1418,16 @@ export const compileAot = async (
     if (debug_mode) console.log('DEBUG dataJsCode', dataJsCode);
     allJsCodeLines.push(...dataJsCode);
 
+    // tables
+    const _table_str_helper = (n: number): string => {
+        let s = '[ ';
+        for (let i = 0; i < n; i++) s += (i === n - 1) ? 'null' : 'null, ';
+        s += ' ]';
+        return s;
+    };
+    const tableJsCode = ast.tables.map((m, i) => `const table${i} = ${_table_str_helper(m.limits.min)};`);
+    allJsCodeLines.push(...tableJsCode);
+
     // function bodies
     for (let i = 0; i < ast.funcs.length; i++) {
         const func_type_idx = ast.funcs[i];
@@ -1435,10 +1473,14 @@ export const compileAot = async (
     }
 
     // exports
+    const exported_tables = ast.exports.filter(x => x.type === MyWasmModuleImportExportType.TABLE);
+    console.log('DEBUG EXPORTED TABLES', exported_tables);
     const exportJsCode = [
         'const wasmExports = {',
         ...ast.exports.filter(x => x.type === MyWasmModuleImportExportType.FUNC).map(x => `    "${x.name}": func${x.idx},`),
+        ...ast.exports.filter(x => x.type === MyWasmModuleImportExportType.TABLE).map(x => `    "${x.name}": table${x.idx},`),
         ...ast.exports.filter(x => x.type === MyWasmModuleImportExportType.MEM).map(x => `    "${x.name}": memory${x.idx},`),
+        ...ast.exports.filter(x => x.type === MyWasmModuleImportExportType.GLOBAL).map(x => `    "${x.name}": global${x.idx},`),
         '};',
     ];
     allJsCodeLines.push(...exportJsCode);

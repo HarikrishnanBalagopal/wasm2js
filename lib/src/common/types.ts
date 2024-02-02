@@ -7,6 +7,7 @@ export enum ValueType {
     FuncRef = 0x70,
     ExternRef = 0x6F,
 }
+export type TableType = ValueType.FuncRef | ValueType.ExternRef;
 export const DEBUG_VALUE_TYPE_NAME_TO_HEX = {
     'I32': 0x7F,
     'I64': 0x7E,
