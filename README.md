@@ -40,7 +40,7 @@ const fetch_and_execute = async () => {
     return result;
 };
 
-fetch_and_execute().catch(console.error);
+fetch_and_execute().then(console.log).catch(console.error);
 ```
 
 ## To do
