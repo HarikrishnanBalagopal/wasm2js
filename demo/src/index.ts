@@ -55,8 +55,8 @@ const setup = () => {
         if (!response.ok) throw new Error('failed to fetch');
         const wasmBytes = new Uint8Array(await response.arrayBuffer());
         console.log('wasm module bytes:', wasmBytes);
-        const myAotCompiledJSCode = await compileAot(wasmBytes, true);
-        // const myAotCompiledJSCode = await compileAot(wasmBytes, false);
+        // const myAotCompiledJSCode = await compileAot(wasmBytes, true);
+        const myAotCompiledJSCode = await compileAot(wasmBytes, false);
         console.log('myAotCompiledJSCode:');
         console.log(myAotCompiledJSCode);
 
