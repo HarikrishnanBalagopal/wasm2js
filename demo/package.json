@@ -9,7 +9,7 @@
   "scripts": {
     "clean": "rm -rf dist/",
     "dev": "webpack serve --config webpack.dev.js",
-    "build": "webpack --config webpack.prod.js",
+    "build": "webpack --config webpack.dev.js",
     "start": "cd dist/ && python3 -m http.server 8080",
     "full": "pnpm run clean && pnpm run build && pnpm run start"
   },

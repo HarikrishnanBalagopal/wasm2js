@@ -131,3 +131,6 @@ dist
 
 # build output directory
 /built/
+
+# MacOS
+.DS_Store
