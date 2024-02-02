@@ -13,6 +13,7 @@ import { setupTestAddVec2AotDemo } from "./demo/testaddvec2aot";
 import { setupFibAotDemo } from "./demo/fibaot";
 import { setupMatch3AotDemo } from "./demo/match3aot";
 import { setupQuineAotDemo } from "./demo/quineaot";
+import { setupJitAotDemo } from "./demo/jitaot";
 
 const setup = () => {
     console.log('setup start');
@@ -54,13 +55,14 @@ const setup = () => {
         if (!response.ok) throw new Error('failed to fetch');
         const wasmBytes = new Uint8Array(await response.arrayBuffer());
         console.log('wasm module bytes:', wasmBytes);
-        // const myAotCompiledJSCode = await compileAot(wasmBytes, true);
-        const myAotCompiledJSCode = await compileAot(wasmBytes, false);
+        const myAotCompiledJSCode = await compileAot(wasmBytes, true);
+        // const myAotCompiledJSCode = await compileAot(wasmBytes, false);
         console.log('myAotCompiledJSCode:');
         console.log(myAotCompiledJSCode);
 
         if (target === 'fire') return await setupFireAotDemo(myAotCompiledJSCode);
         if (target === 'quine') return await setupQuineAotDemo(myAotCompiledJSCode);
+        if (target === 'jit') return await setupJitAotDemo(myAotCompiledJSCode);
         if (target === 'test-add-vec2') return await setupTestAddVec2AotDemo(myAotCompiledJSCode);
         if (target === 'fib') return await setupFibAotDemo(myAotCompiledJSCode);
         if (target === 'dino') return await setupDinoAotDemo(myAotCompiledJSCode);

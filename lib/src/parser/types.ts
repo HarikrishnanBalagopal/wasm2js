@@ -1,4 +1,4 @@
-import { ValueType } from "../common/types.js";
+import { TableType, ValueType } from "../common/types.js";
 
 export type Limits = {
     min: number;
@@ -104,6 +104,10 @@ export type MyWasmModuleGlobal = {
     mut: boolean;
     expr: Array<MyWasmModuleFuncInst>;
 };
+export type MyWasmModuleTable = {
+    type: TableType;
+    limits: Limits;
+};
 export type MyParserAstCode = { locals: Array<ValueType>; body: Array<MyParserAstCodeInst> };
 export type MyParserAstMem = Limits;
 export type MyParserAst = {
@@ -111,7 +115,7 @@ export type MyParserAst = {
     types: Array<MyWasmModuleBlockType>;
     imports: Array<MyWasmModuleImport>;
     funcs: Array<number>;
-    tables: Array<unknown>;
+    tables: Array<MyWasmModuleTable>;
     mems: Array<MyParserAstMem>;
     globals: Array<MyWasmModuleGlobal>;
     exports: Array<MyWasmModuleExport>;
