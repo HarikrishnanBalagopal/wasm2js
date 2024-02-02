@@ -12,6 +12,7 @@ import { setupSnakeAotDemo } from "./demo/snakeaot";
 import { setupTestAddVec2AotDemo } from "./demo/testaddvec2aot";
 import { setupFibAotDemo } from "./demo/fibaot";
 import { setupMatch3AotDemo } from "./demo/match3aot";
+import { setupQuineAotDemo } from "./demo/quineaot";
 
 const setup = () => {
     console.log('setup start');
@@ -19,22 +20,22 @@ const setup = () => {
     const default_url = '---';
     const urls = [
         default_url,
-        'no-start',
-        'test-add-vec2',
-        'add',
-        'fib',
-        'metaball',
-        'jit',
+        // 'no-start',
+        // 'test-add-vec2',
+        // 'add',
+        // 'fib',
         'quine',
-        'snake',
-        'dino',
         'fire',
+        'jit',
+        'metaball',
+        'inflate',
         'chip8',
         'ray',
-        'inflate',
-        'mod',
+        'snake',
+        'dino',
         'maze',
         'match3',
+        'mod',
         'badgb',
     ];
     urls.forEach(s => {
@@ -59,6 +60,7 @@ const setup = () => {
         console.log(myAotCompiledJSCode);
 
         if (target === 'fire') return await setupFireAotDemo(myAotCompiledJSCode);
+        if (target === 'quine') return await setupQuineAotDemo(myAotCompiledJSCode);
         if (target === 'test-add-vec2') return await setupTestAddVec2AotDemo(myAotCompiledJSCode);
         if (target === 'fib') return await setupFibAotDemo(myAotCompiledJSCode);
         if (target === 'dino') return await setupDinoAotDemo(myAotCompiledJSCode);
