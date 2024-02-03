@@ -1,5 +1,5 @@
 import { ELEM_ID } from "./common";
-import { instantiateAot } from "@haribala/wasm2js";
+import { instantiate } from "@haribala/wasm2js";
 
 export const setupMazeAotDemo = async (compiledJSCode: string) => {
   console.log('setting up the AOT compiled maze demo');
@@ -81,7 +81,7 @@ export const setupMazeAotDemo = async (compiledJSCode: string) => {
   }, 100);
 
   const importObject: any = { Math, env };
-  const instance = await instantiateAot(compiledJSCode, importObject);
+  const instance = instantiate(compiledJSCode, importObject);
   let canvasData = new Uint8Array((instance.exports.mem as Uint8Array).buffer, 0x3000, 307200);
   let context = canvas.getContext('2d');
   let imageData = context.createImageData(320, 240);

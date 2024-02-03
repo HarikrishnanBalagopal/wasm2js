@@ -1,10 +1,9 @@
 import { ELEM_ID } from "./common";
-import { instantiateAot } from "@haribala/wasm2js";
+import { instantiate } from "@haribala/wasm2js";
 
 export const setupBadGBAotDemo = async (compiledJSCode: string) => {
   console.log('setting up the AOT compiled BadGB demo');
   const outputE = document.querySelector('#' + ELEM_ID);
-  outputE.innerHTML = '';
   outputE.innerHTML = `<div id="game">
   <canvas width="160" height="144"></canvas>
 </div>
@@ -330,7 +329,7 @@ export const setupBadGBAotDemo = async (compiledJSCode: string) => {
     let romResponse = await fetch('/assets/wasm/porklike.gb');
     let romBytes = await romResponse.arrayBuffer();
     // let instance = await WebAssembly.instantiate(module);
-    let instance = await instantiateAot(compiledJSCode, {});
+    let instance = instantiate(compiledJSCode, {});
     emulator = new Emulator(instance, romBytes);
   })();
 
@@ -342,7 +341,7 @@ export const setupBadGBAotDemo = async (compiledJSCode: string) => {
 
     let romBytes = await readFile(file);
     // let instance = await WebAssembly.instantiate(module);
-    let instance = await instantiateAot(compiledJSCode, {});
+    let instance = instantiate(compiledJSCode, {});
     emulator = new Emulator(instance, romBytes);
   });
 

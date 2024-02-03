@@ -1,5 +1,5 @@
 import { ELEM_ID } from "./common";
-import { instantiateAot } from "@haribala/wasm2js";
+import { instantiate } from "@haribala/wasm2js";
 
 export const setupFireAotDemo = async (compiledJSCode: string) => {
   console.log('setting up the AOT compiled fire demo');
@@ -36,7 +36,7 @@ export const setupFireAotDemo = async (compiledJSCode: string) => {
   // const instance = (await WebAssembly.instantiateStreaming( fetch('/assets/wasm/fire2.wasm'), imports)).instance;
   // const instance = (await WebAssembly.instantiateStreaming( fetch('/assets/wasm/fire.wasm'), imports)).instance;
   // const instance = await instantiate(compiledModule, imports);
-  const instance = await instantiateAot(compiledJSCode, importObject);
+  const instance = instantiate(compiledJSCode, importObject);
   console.log('fire instance', instance);
   //    const instance = new WebAssembly.Instance(new WebAssembly.Module(data), imports);
   if (!(instance.exports.mem instanceof Uint8Array)) throw new Error('expected an export called "mem" of type Uint8Array');

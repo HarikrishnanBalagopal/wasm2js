@@ -1,5 +1,5 @@
 import { ELEM_ID } from "./common";
-import { compileAot, instantiateAot } from "@haribala/wasm2js";
+import { compile, instantiate } from "@haribala/wasm2js";
 
 export const setupJitAotDemo = async (compiledJSCode: string) => {
     console.log('setting up the AOT compiled JIT demo');
@@ -66,11 +66,11 @@ export const setupJitAotDemo = async (compiledJSCode: string) => {
 
     const ffi = {
         '': {
-            compile: (len: number) => {
+            'compile': (len: number) => {
                 const data = new Uint8Array(u8a.buffer, 16, len);
                 update(data);
-                // const js = await compileAot(data, false);
-                // const instance = await instantiateAot(js, {});
+                // const js = compile(data, false);
+                // const instance = instantiate(js, {});
                 const instance = new WebAssembly.Instance(new WebAssembly.Module(data));
                 const func = instance.exports['0'];
                 // table.set(0, func);
@@ -81,7 +81,7 @@ export const setupJitAotDemo = async (compiledJSCode: string) => {
 
     // fetch('jit.wasm')
     // .then(response => response.arrayBuffer())
-    const instance = await instantiateAot(compiledJSCode, ffi);
+    const instance = instantiate(compiledJSCode, ffi);
     console.log('jit instance', instance);
 
     // .then(bytes => WebAssembly.instantiate(bytes, ffi))

@@ -1,4 +1,4 @@
-import { compileAot, instantiateAot } from "@haribala/wasm2js";
+import { compile } from "@haribala/wasm2js";
 
 import { ELEM_ID } from "./demo/common";
 import { setupBadGBAotDemo } from "./demo/badgbaot";
@@ -55,8 +55,8 @@ const setup = () => {
         if (!response.ok) throw new Error('failed to fetch');
         const wasmBytes = new Uint8Array(await response.arrayBuffer());
         console.log('wasm module bytes:', wasmBytes);
-        // const myAotCompiledJSCode = await compileAot(wasmBytes, true);
-        const myAotCompiledJSCode = await compileAot(wasmBytes, false);
+        // const myAotCompiledJSCode = compile(wasmBytes, true);
+        const myAotCompiledJSCode = compile(wasmBytes, false);
         console.log('myAotCompiledJSCode:');
         console.log(myAotCompiledJSCode);
 
@@ -96,8 +96,4 @@ const main = async (): Promise<void> => {
 
 main().catch(console.error);
 
-export {
-    main,
-    compileAot,
-    instantiateAot,
-};
+export { main };

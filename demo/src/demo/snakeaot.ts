@@ -1,5 +1,5 @@
 import { ELEM_ID } from "./common";
-import { instantiateAot } from "@haribala/wasm2js";
+import { instantiate } from "@haribala/wasm2js";
 
 export const setupSnakeAotDemo = async (compiledJSCode: string) => {
   console.log('setting up the AOT compiled snake demo');
@@ -32,7 +32,7 @@ export const setupSnakeAotDemo = async (compiledJSCode: string) => {
   }
 
   const imports: any = { Math };
-  const instance = await instantiateAot(compiledJSCode, imports);
+  const instance = instantiate(compiledJSCode, imports);
   console.log('AOT snake instance', instance);
 
   const canvasData = new Uint8Array((instance.exports.mem as Uint8Array).buffer, 0x15000, 307200);

@@ -1,5 +1,5 @@
 import { ELEM_ID } from "./common";
-import { instantiateAot } from "@haribala/wasm2js";
+import { instantiate } from "@haribala/wasm2js";
 
 export const setupMetaBallAotDemo = async (compiledJSCode: string) => {
     console.log('setting up the AOT compiled snake demo');
@@ -36,7 +36,7 @@ export const setupMetaBallAotDemo = async (compiledJSCode: string) => {
     document.body.addEventListener('click', () => blobs && blobs(blobCount), true);
 
     const imports = { '': { rand: Math.random } };
-    const instance = await instantiateAot(compiledJSCode, imports);
+    const instance = instantiate(compiledJSCode, imports);
     console.log('AOT metaball instance', instance);
 
     blobs = instance.exports.blobs;

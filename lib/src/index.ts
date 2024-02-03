@@ -1,1 +1,1 @@
-export { compileAot, instantiateAot } from './parser/aotcompiler.js';
+export { compile, instantiate } from './parser/aotcompiler.js';

@@ -8,7 +8,7 @@ import {
     I_I32_EQ, I_I32_EQZ, I_I32_EXTEND_8_S, I_I32_GE_S, I_I32_GE_U, I_I32_GT_S, I_I32_GT_U, I_I32_LE_S, I_I32_LE_U,
     I_I32_LOAD, I_I32_LOAD_16_S, I_I32_LOAD_16_U, I_I32_LOAD_8_S, I_I32_LOAD_8_U, I_I32_LT_S, I_I32_LT_U, I_I32_MUL,
     I_I32_NE, I_I32_OR, I_I32_REM_S, I_I32_REM_U, I_I32_ROTL, I_I32_SHL, I_I32_SHR_S, I_I32_SHR_U, I_I32_STORE,
-    I_I32_STORE_16, I_I32_STORE_8, I_I32_SUB, I_I32_TRUNC_F32_S, I_I32_TRUNC_F32_U, I_I32_TRUNC_F64_U,
+    I_I32_STORE_16, I_I32_STORE_8, I_I32_SUB, I_I32_TRUNC_F32_S, I_I32_TRUNC_F32_U, I_I32_TRUNC_F64_S, I_I32_TRUNC_F64_U,
     I_I32_TRUNC_SAT_F32_S, I_I32_TRUNC_SAT_F32_U, I_I32_TRUNC_SAT_F64_S, I_I32_TRUNC_SAT_F64_U, I_I32_WRAP_I64,
     I_I32_XOR, I_I64_ADD,
     I_I64_AND, I_I64_CONST, I_I64_CTZ, I_I64_EQ, I_I64_EQZ, I_I64_EXTEND_I32_U, I_I64_LOAD, I_I64_LOAD_32_U, I_I64_MUL,
@@ -62,12 +62,12 @@ const my_stringify = (x: any) => {
     return JSON.stringify(x, (_, value) => typeof value === 'bigint' ? value.toString() : value);
 };
 
-export const compileAotHelper = async (
+export const compileAotHelper = (
     ctx: CompilationContext,
     body: Array<MyParserAstCodeInst>,
     debug_mode: boolean = false,
-    strict_maths: boolean = false,
-): Promise<Array<string>> => {
+    strict_maths: boolean = true,
+): Array<string> => {
     if (debug_mode) {
         console.log('DEBUG compileAotHelper called with ctx:', JSON.stringify(ctx), 'and body:', body);
     }
@@ -103,7 +103,7 @@ export const compileAotHelper = async (
                         console.log('Warning: SPECIAL CASE of I32 block type');
                         const block_idx = `block_with_result_${ctx.newId++}`;
                         ctx.stack.push({ 'is_loop': false, 'label': block_idx });
-                        const blockJsCode = await compileAotHelper(ctx, instData.body, debug_mode, strict_maths);
+                        const blockJsCode = compileAotHelper(ctx, instData.body, debug_mode, strict_maths);
                         jsCode.push(`${block_idx}: {`);
                         jsCode.push(...blockJsCode.map(x => '    ' + x));
                         jsCode.push('}');
@@ -113,7 +113,7 @@ export const compileAotHelper = async (
                 }
                 const block_idx = `block_${ctx.newId++}`;
                 ctx.stack.push({ 'is_loop': false, 'label': block_idx });
-                const blockJsCode = await compileAotHelper(ctx, instData.body, debug_mode, strict_maths);
+                const blockJsCode = compileAotHelper(ctx, instData.body, debug_mode, strict_maths);
                 jsCode.push(`${block_idx}: {`);
                 jsCode.push(...blockJsCode.map(x => '    ' + x));
                 jsCode.push('}');
@@ -126,7 +126,7 @@ export const compileAotHelper = async (
                 if (instData.blockType !== BLOCK_TYPE_EMPTY) throw new Error('TODO: implement non-empty loop type');
                 const block_idx = `loop_${ctx.newId++}`;
                 ctx.stack.push({ 'is_loop': true, 'label': block_idx });
-                const loopJsCode = await compileAotHelper(ctx, instData.body, debug_mode, strict_maths);
+                const loopJsCode = compileAotHelper(ctx, instData.body, debug_mode, strict_maths);
                 // const rand_id = Math.floor(Math.random() * 10000);
                 // const loop_counter_var = `__my_debug_loop_counter_${rand_id}`;
                 // jsCode.push(`let ${loop_counter_var} = 0;`);
@@ -147,7 +147,7 @@ export const compileAotHelper = async (
                 const block_idx = `if_${ctx.newId++}`;
                 ctx.stack.push({ 'is_loop': false, 'label': block_idx });
                 jsCode.push(`${block_idx}: if (stack.pop() !== 0) {`);
-                const trueJsCode = await compileAotHelper(ctx, instData.trueBody, debug_mode, strict_maths);
+                const trueJsCode = compileAotHelper(ctx, instData.trueBody, debug_mode, strict_maths);
                 jsCode.push(...trueJsCode.map(x => '    ' + x));
                 if (instData.falseBody) {
                     // console.log('***********************');
@@ -157,7 +157,7 @@ export const compileAotHelper = async (
                     // console.log('***********************');
                     // ctx.stack.push({ 'is_loop': false, 'label': block_idx });
                     jsCode.push('} else {');
-                    const falseJsCode = await compileAotHelper(ctx, instData.falseBody, debug_mode, strict_maths);
+                    const falseJsCode = compileAotHelper(ctx, instData.falseBody, debug_mode, strict_maths);
                     jsCode.push(...falseJsCode.map(x => '    ' + x));
                     // console.log('!!!!!!!!!!!!!!!!!!!!!!!');
                     // console.log('!!!!!!!!!!!!!!!!!!!!!!!');
@@ -355,15 +355,56 @@ export const compileAotHelper = async (
             }
             case I_CALL_INDIRECT: {
                 // https://webassembly.github.io/spec/core/exec/instructions.html#xref-syntax-instructions-syntax-instr-control-mathsf-call-indirect-x-y
-                console.log('DEBUG I_CALL_INDIRECT inst', inst);
+                if (debug_mode) console.log('DEBUG I_CALL_INDIRECT inst', inst);
                 const instData = inst.data as { tableIdx: number; typeIdx: number };
-                console.log('DEBUG I_CALL_INDIRECT instData', instData);
+                const func_type = ctx.types[instData.typeIdx];
+                if (debug_mode) console.log('DEBUG I_CALL_INDIRECT func_type', func_type);
+                const _helper_code: Array<string> = [];
+                if (func_type.params.length === 0) {
+                    if (func_type.results.length === 0) {
+                        _helper_code.push(
+                            '    f();',
+                        );
+                    } else if (func_type.results.length === 1) {
+                        _helper_code.push(
+                            '    const result = f();',
+                            '    stack.push(result);',
+                        );
+                    } else {
+                        _helper_code.push(
+                            '    const result = f();',
+                            '    stack.push(...result);',
+                        );
+                    }
+                } else {
+                    const params_len = func_type.params.length;
+                    _helper_code.push(
+                        `    const args = stack.slice(${params_len});`,
+                    );
+                    if (func_type.results.length === 0) {
+                        _helper_code.push(
+                            '    f(...args);',
+                        );
+                    } else if (func_type.results.length === 1) {
+                        _helper_code.push(
+                            '    const result = f(...args);',
+                            '    stack.push(result);',
+                        );
+                    } else {
+                        _helper_code.push(
+                            '    const result = f(...args);',
+                            '    stack.push(...result);',
+                        );
+                    }
+                }
                 jsCode.push(
                     '{',
                     '    const i = stack.pop();',
-                    `    const f = table${instData.tableIdx}[i]`,
-                    '    const result = f();',
-                    '    stack.push(result);',
+                    `    const f = table${instData.tableIdx}[i];`,
+                    // '    console.log("DEBUG I_CALL_INDIRECT f.length", f.length, "f", f);',
+                    // '    const result = f();',
+                    // '    stack.push(result);',
+                    ..._helper_code,
                     '}',
                 );
                 // throw new Error('TODO: implement I_CALL_INDIRECT');
@@ -392,12 +433,18 @@ export const compileAotHelper = async (
             }
             case I_LOCAL_SET: {
                 // jsCode.push(`local${inst.data} = stack.pop();`);
-                jsCode.push('{');
-                jsCode.push(`    local${inst.data} = stack.pop();`);
-                // jsCode.push(`    if (${inst.data} === 2) { console.log("I_LOCAL_SET local${inst.data}", local${inst.data}); }`);
-                // jsCode.push(`    console.log("I_LOCAL_SET local${inst.data}", local${inst.data});`);
-                jsCode.push(`    if(local${inst.data} < ${MOST_NEG_S_I64}n) throw new Error('I_LOCAL_SET DEBUG local${inst.data} less than most negative');`);
-                jsCode.push('}');
+                if (debug_mode) {
+                    jsCode.push('{');
+                    jsCode.push(`    local${inst.data} = stack.pop();`);
+                    // jsCode.push(`    if (${inst.data} === 2) { console.log("I_LOCAL_SET local${inst.data}", local${inst.data}); }`);
+                    // jsCode.push(`    console.log("I_LOCAL_SET local${inst.data}", local${inst.data});`);
+                    jsCode.push(
+                        `    if(local${inst.data} < ${MOST_NEG_S_I64}n) throw new Error('I_LOCAL_SET local${inst.data} less than most negative');`
+                    );
+                    jsCode.push('}');
+                } else {
+                    jsCode.push(`local${inst.data} = stack.pop();`);
+                }
                 break;
             }
             case I_LOCAL_TEE: {
@@ -406,12 +453,16 @@ export const compileAotHelper = async (
             }
             case I_GLOBAL_GET: {
                 // jsCode.push(`stack.push(global${inst.data});`);
-                jsCode.push('{');
-                jsCode.push(`    const g = global${inst.data};`);
-                jsCode.push('    stack.push(g);');
-                // jsCode.push('    console.log("I_GLOBAL_GET g", g);');
-                jsCode.push(`    if(g < ${MOST_NEG_S_I64}n) throw new Error('I_GLOBAL_GET g less than most negative');`);
-                jsCode.push('}');
+                if (debug_mode) {
+                    jsCode.push('{');
+                    jsCode.push(`    const g = global${inst.data};`);
+                    jsCode.push('    stack.push(g);');
+                    // jsCode.push('    console.log("I_GLOBAL_GET g", g);');
+                    jsCode.push(`    if(g < ${MOST_NEG_S_I64}n) throw new Error('I_GLOBAL_GET g less than most negative');`);
+                    jsCode.push('}');
+                } else {
+                    jsCode.push(`stack.push(global${inst.data});`);
+                }
                 break;
             }
             case I_GLOBAL_SET: {
@@ -433,17 +484,19 @@ export const compileAotHelper = async (
                 jsCode.push('{');
                 jsCode.push(`    const x = stack.pop();`);
                 jsCode.push(`    const o = ${instData.offset};`);
-                jsCode.push('    try {');
+                if (debug_mode) jsCode.push('    try {');
                 // jsCode.push(`stack.push(new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 4).getFloat32(0, true));`);
                 jsCode.push(`        stack.push(new DataView(memory0.buffer, o + x, 4).getFloat32(0, true));`);
-                jsCode.push('    } catch(e) {');
                 // jsCode.push('        throw new Error(`failed on I_F32_LOAD ${e}`);');
-                // jsCode.push(`        console.log('x', x);`);
-                // jsCode.push(`        console.log('o', o);`);
-                // jsCode.push(`        console.log('memory0', memory0);`);
-                // jsCode.push('        debugger;');
-                jsCode.push('        throw new Error("DEBUG getFloat32");');
-                jsCode.push('    }');
+                if (debug_mode) {
+                    jsCode.push(
+                        '    } catch(e) {',
+                        '        console.log("DEBUG I_F32_LOAD x", x, "o", o, "memory0", memory0);',
+                        '        debugger;',
+                        '        throw new Error("DEBUG I_F32_LOAD getFloat32");',
+                        '    }',
+                    );
+                }
                 jsCode.push('}');
                 break;
             }
@@ -487,11 +540,16 @@ export const compileAotHelper = async (
                     '    const a = stack.pop();',
                     `    const offset = ${instData.offset};`,
                     '    const address = offset + a;',
-                    '    if (address < 0) {',
-                    '        console.error("I_I32_STORE DEBUG a", a, "offset", offset, "address", address);',
-                    '        debugger;',
-                    '        throw new Error("I_I32_STORE the address is negative");',
-                    '    }',
+                );
+                if (debug_mode) {
+                    jsCode.push('    if (address < 0) {',
+                        '        console.error("I_I32_STORE DEBUG a", a, "offset", offset, "address", address);',
+                        '        debugger;',
+                        '        throw new Error("I_I32_STORE the address is negative");',
+                        '    }',
+                    );
+                }
+                jsCode.push(
                     `    new DataView(memory0.buffer, address, 4).setInt32(0, x, true);`,
                     // `    new DataView(memory0.buffer, ${instData.offset} + stack.pop(), 4).setInt32(0, x, true);`,
                     '}',
@@ -939,10 +997,16 @@ export const compileAotHelper = async (
                     `    const sp_x_1 = (sp_x < ${MOST_NEG_S_I64}n) ? (sp_x + ${MOST_POS_U_I64}n) : sp_x;`,
                     `    const sp_x_2 = (sp_x_1 > ${MOST_POS_S_I64}n) ? (sp_x_1 - ${MOST_POS_U_I64}n) : sp_x_1;`,
                     '    stack.push(sp_x_2);',
-                    // '    console.log("I_I64_SUB x", x, "sp", sp, "sp_x", sp_x, "sp_x_1", sp_x_2, "sp_x_2", sp_x_2);',
-                    `    if(x < ${MOST_NEG_S_I64}n) throw new Error('I_I64_SUB x less than most negative');`,
-                    `    if(sp < ${MOST_NEG_S_I64}n) throw new Error('I_I64_SUB sp less than most negative');`,
-                    `    if(sp_x_2 < ${MOST_NEG_S_I64}n) throw new Error('I_I64_SUB sp_x_2 less than most negative');`,
+                );
+                if (debug_mode) {
+                    jsCode.push(
+                        // '    console.log("I_I64_SUB x", x, "sp", sp, "sp_x", sp_x, "sp_x_1", sp_x_2, "sp_x_2", sp_x_2);',
+                        `    if(x < ${MOST_NEG_S_I64}n) throw new Error('I_I64_SUB x less than most negative');`,
+                        `    if(sp < ${MOST_NEG_S_I64}n) throw new Error('I_I64_SUB sp less than most negative');`,
+                        `    if(sp_x_2 < ${MOST_NEG_S_I64}n) throw new Error('I_I64_SUB sp_x_2 less than most negative');`,
+                    );
+                }
+                jsCode.push(
                     '}',
                 );
                 break;
@@ -970,9 +1034,11 @@ export const compileAotHelper = async (
                 // jsCode.push('    if(x < 0) throw new Error("I_I64_AND x is negative");'); // BigInt.asUintN(bwidth, BigInt(x))
                 // jsCode.push('    if(y < 0) throw new Error("I_I64_AND y is negative");'); // BigInt.asUintN(bwidth, BigInt(x))
                 // jsCode.push('    if(z < 0) throw new Error("I_I64_AND z is negative");'); // BigInt.asUintN(bwidth, BigInt(x))
-                jsCode.push(`    if(x < ${MOST_NEG_S_I64}n) throw new Error('I_I64_AND x less than most negative');`);
-                jsCode.push(`    if(y < ${MOST_NEG_S_I64}n) throw new Error('I_I64_AND y less than most negative');`);
-                jsCode.push(`    if(z < ${MOST_NEG_S_I64}n) throw new Error('I_I64_AND z less than most negative');`);
+                if (debug_mode) {
+                    jsCode.push(`    if(x < ${MOST_NEG_S_I64}n) throw new Error('I_I64_AND x less than most negative');`);
+                    jsCode.push(`    if(y < ${MOST_NEG_S_I64}n) throw new Error('I_I64_AND y less than most negative');`);
+                    jsCode.push(`    if(z < ${MOST_NEG_S_I64}n) throw new Error('I_I64_AND z less than most negative');`);
+                }
                 jsCode.push('}');
                 // jsCode.push('    if(y === (x-1n)) debugger;');
                 // jsCode.push('    stack.push(x & y);');
@@ -992,13 +1058,17 @@ export const compileAotHelper = async (
                     '    const x1 = BigInt.asUintN(64, stack.pop());',
                     '    const x3 = x1 ^ x2;',
                     // '    console.log("I_I64_XOR x1", x1, "x2", x2, "x3", x3);',
-                    `    if(x1 < ${MOST_NEG_S_I64}n) throw new Error('I_I64_XOR x1 less than most negative');`,
-                    `    if(x2 < ${MOST_NEG_S_I64}n) throw new Error('I_I64_XOR x2 less than most negative');`,
-                    // `    if(x3 < ${MOST_NEG_S_I64}n) throw new Error('I_I64_XOR x3 less than most negative');`,
-                    `    if(x3 < ${MOST_NEG_S_I64}n) { console.log("I_I64_XOR x1", x1, "x2", x2, "x3", x3); throw new Error('I_I64_XOR x3 less than most negative'); }`,
+                );
+                if (debug_mode) {
+                    jsCode.push(
+                        `    if(x1 < ${MOST_NEG_S_I64}n) throw new Error('I_I64_XOR x1 less than most negative');`,
+                        `    if(x2 < ${MOST_NEG_S_I64}n) throw new Error('I_I64_XOR x2 less than most negative');`,
+                        `    if(x3 < ${MOST_NEG_S_I64}n) { console.log("I_I64_XOR x1", x1, "x2", x2, "x3", x3); throw new Error('I_I64_XOR x3 less than most negative'); }`,
+                        `    if(x3 > ${MOST_POS_U_I64}) throw new Error("I_I64_XOR x3 is greated than most positive unsigned i64");`,
+                    );
+                }
+                jsCode.push(
                     '    stack.push(x3);',
-                    // '    console.log("stack", safeJSONstringify(stack));',
-                    '    if(x3 > 0xFFFFFFFFFFFFFFFFn) throw new Error("I_I64_XOR something is wrong");',
                     '}',
                 );
                 break;
@@ -1157,46 +1227,45 @@ export const compileAotHelper = async (
                 break;
             }
             case I_I32_TRUNC_F32_S: {
-                // jsCode.push('stack.push(Math.trunc(stack.pop()));');
                 jsCode.push(
                     '{',
                     '    const x = stack.pop();',
-                    '    const y = Math.trunc(x);',
-                    // '    console.log("I_I32_TRUNC_F32_S DEBUG x", x, "y", y);',
                     '    if(!Number.isFinite(x)) throw new Error("I_I32_TRUNC_F32_S not finite");',
-                    // > RuntimeError: float unrepresentable in integer range
-                    `    if(x < ${MOST_NEG_S_I32} || x > ${MOST_POS_S_I32}) throw new Error("I_I32_TRUNC_F32_S float unrepresentable in integer range");`,
-                    '    stack.push(y);',
+                    `    if(x < ${MOST_NEG_S_I32} || x > ${MOST_POS_S_I32}) throw new Error("RuntimeError: float unrepresentable in integer range");`,
+                    '    stack.push(Math.trunc(x));',
                     '}',
                 );
                 break;
             }
             case I_I32_TRUNC_F32_U: {
-                // jsCode.push('stack.push(Math.trunc(stack.pop()));');
                 jsCode.push(
                     '{',
                     '    const x = stack.pop();',
-                    '    const y = Math.trunc(x);',
-                    // '    console.log("I_I32_TRUNC_F32_S DEBUG x", x, "y", y);',
-                    '    if(!Number.isFinite(x)) throw new Error("I_I32_TRUNC_F32_S not finite");',
-                    // > RuntimeError: float unrepresentable in integer range
-                    `    if(x < 0 || x > ${MOST_POS_S_I32}) throw new Error("I_I32_TRUNC_F32_S float unrepresentable in integer range");`,
-                    '    stack.push(y);',
+                    '    if(!Number.isFinite(x)) throw new Error("I_I32_TRUNC_F32_U not finite");',
+                    `    if(x < 0 || x > ${MOST_POS_U_I32}) throw new Error("RuntimeError: float unrepresentable in integer range");`,
+                    '    stack.push(Math.trunc(x));',
+                    '}',
+                );
+                break;
+            }
+            case I_I32_TRUNC_F64_S: {
+                jsCode.push(
+                    '{',
+                    '    const x = stack.pop();',
+                    '    if(!Number.isFinite(x)) throw new Error("I_I32_TRUNC_F64_S not finite");',
+                    `    if(x < ${MOST_NEG_S_I32} || x > ${MOST_POS_S_I32}) throw new Error("RuntimeError: float unrepresentable in integer range");`,
+                    '    stack.push(Math.trunc(x));',
                     '}',
                 );
                 break;
             }
             case I_I32_TRUNC_F64_U: {
-                // jsCode.push('stack.push(Math.trunc(stack.pop()));');
                 jsCode.push(
                     '{',
                     '    const x = stack.pop();',
-                    '    const y = Math.trunc(x);',
-                    // '    console.log("I_I32_TRUNC_F32_S DEBUG x", x, "y", y);',
-                    '    if(!Number.isFinite(x)) throw new Error("I_I32_TRUNC_F32_S not finite");',
-                    // > RuntimeError: float unrepresentable in integer range
-                    `    if(x < 0 || x > ${MOST_POS_S_I32}) throw new Error("I_I32_TRUNC_F32_S float unrepresentable in integer range");`,
-                    '    stack.push(y);',
+                    '    if(!Number.isFinite(x)) throw new Error("I_I32_TRUNC_F64_U not finite");',
+                    `    if(x < 0 || x > ${MOST_POS_U_I32}) throw new Error("RuntimeError: float unrepresentable in integer range");`,
+                    '    stack.push(Math.trunc(x));',
                     '}',
                 );
                 break;
@@ -1296,11 +1365,11 @@ export const compileAotHelper = async (
     return jsCode;
 };
 
-export const compileAot = async (
+export const compile = (
     wasmBytes: Uint8Array,
     debug_mode: boolean = false,
     strict_maths: boolean = true,
-): Promise<string> => {
+): string => {
     //, importObject: MyWasmImportObject): Promise<string> => {
     // console.log('DEBUG compileAot called with importObject:', importObject);
     if (debug_mode) console.log('DEBUG compileAot called with wasmBytes:', wasmBytes);
@@ -1315,8 +1384,8 @@ export const compileAot = async (
     // imports
     const importJsCode: Array<string> = [
         // TODO: is this the best place for the count trailing zeros helper function?
-        `function ${MY_CTZ_FN}(x, i64) {`,
-        '    const bwidth = i64 ? 64 : 32;',
+        `function ${MY_CTZ_FN}(x, is_64) {`,
+        '    const bwidth = is_64 ? 64 : 32;',
         '    const s = BigInt.asUintN(bwidth, BigInt(x)).toString(2).padStart(bwidth, "0");',
         '    let count = 0;',
         '    for (let i = s.length-1; i >= 0; i--, count++) {',
@@ -1332,7 +1401,18 @@ export const compileAot = async (
         '}',
     ];
 
-    // TODO: imported tables
+    // imported tables
+    const importedTables = ast.imports.filter(x => x.type === MyWasmModuleImportExportType.TABLE);
+    const importedTablesLength = importedTables.length;
+    importedTables.forEach((t, i) => {
+        // console.log('!!!!!!!!!! importedTables t:', t);
+        importJsCode.push(
+            `if (!('${t.module}' in import_object) || !('${t.name}' in import_object['${t.module}'])) {`,
+            `    throw new Error('failed to find the table import in the import object: ${t.module} ${t.name}');`,
+            '}',
+            `const table${i} = import_object['${t.module}']['${t.name}'];`,
+        );
+    });
 
     // imported globals
     const importedGlobals = ast.imports.filter(x => x.type === MyWasmModuleImportExportType.GLOBAL);
@@ -1425,7 +1505,7 @@ export const compileAot = async (
         s += ' ]';
         return s;
     };
-    const tableJsCode = ast.tables.map((m, i) => `const table${i} = ${_table_str_helper(m.limits.min)};`);
+    const tableJsCode = ast.tables.map((m, i) => `const table${importedTablesLength + i} = ${_table_str_helper(m.limits.min)};`);
     allJsCodeLines.push(...tableJsCode);
 
     // function bodies
@@ -1456,7 +1536,7 @@ export const compileAot = async (
         ];
         ctx.types = ast.types;
         ctx.stack.push({ is_loop: false, label: `top_level_func_${i}` });
-        const funcBodyJsCode = await compileAotHelper(ctx, code.body, debug_mode, strict_maths);
+        const funcBodyJsCode = compileAotHelper(ctx, code.body, debug_mode, strict_maths);
         funcJSCode.push(...funcBodyJsCode.map(x => '    ' + x));
         if (func_type.results.length > 0) {
             if (func_type.results.length === 1) {
@@ -1474,7 +1554,7 @@ export const compileAot = async (
 
     // exports
     const exported_tables = ast.exports.filter(x => x.type === MyWasmModuleImportExportType.TABLE);
-    console.log('DEBUG EXPORTED TABLES', exported_tables);
+    if (debug_mode) console.log('DEBUG EXPORTED TABLES', exported_tables);
     const exportJsCode = [
         'const wasmExports = {',
         ...ast.exports.filter(x => x.type === MyWasmModuleImportExportType.FUNC).map(x => `    "${x.name}": func${x.idx},`),
@@ -1500,7 +1580,7 @@ export const compileAot = async (
     // return evaluatedJsCode;
 };
 
-export const instantiateAot = async (compiledJSCode: string, importObject: MyWasmImportObject): Promise<MyWasmInstance> => {
+export const instantiate = (compiledJSCode: string, importObject: MyWasmImportObject): MyWasmInstance => {
     const createInstance = eval(compiledJSCode);
     return createInstance(importObject);
 };

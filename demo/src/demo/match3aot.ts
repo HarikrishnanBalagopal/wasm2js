@@ -1,5 +1,5 @@
 import { ELEM_ID } from "./common";
-import { instantiateAot } from "@haribala/wasm2js";
+import { instantiate } from "@haribala/wasm2js";
 // import { match3_fn } from './match3helper.js';
 
 // function cyrb128(str) {
@@ -90,7 +90,7 @@ export const setupMatch3AotDemo = async (compiledJSCode: string) => {
     // const instance = (await WebAssembly.instantiateStreaming( fetch('/assets/wasm/fire2.wasm'), imports)).instance;
     // const instance = (await WebAssembly.instantiateStreaming( fetch('/assets/wasm/fire.wasm'), imports)).instance;
     // const instance = await instantiate(compiledModule, imports);
-    const instance = await instantiateAot(compiledJSCode, importObject);
+    const instance = instantiate(compiledJSCode, importObject);
     // console.log('DEBUG match3_fn', match3_fn);
     // const instance = await instantiateAot(match3_fn, importObject);
     console.log('match 3 instance', instance);

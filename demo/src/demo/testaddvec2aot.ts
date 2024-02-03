@@ -1,5 +1,5 @@
 import { ELEM_ID } from "./common";
-import { instantiateAot } from "@haribala/wasm2js";
+import { instantiate } from "@haribala/wasm2js";
 
 export const setupTestAddVec2AotDemo = async (compiledJSCode: string) => {
   console.log('setting up the AOT compiled test addvec2 demo');
@@ -12,6 +12,6 @@ export const setupTestAddVec2AotDemo = async (compiledJSCode: string) => {
     else outputDiv.textContent += `\n${x}`;
   };
   const importObject = { 'console': { 'log': mylogger } };
-  const instance = await instantiateAot(compiledJSCode, importObject);
+  const instance = instantiate(compiledJSCode, importObject);
   console.log('test addvec2 instance', instance);
 };

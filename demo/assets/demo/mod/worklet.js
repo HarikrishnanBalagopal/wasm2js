@@ -1,7 +1,7 @@
 const MAX_FRAMES = 4096;
 
 // copied here
-export const instantiateAot = async (compiledJSCode, importObject) => {
+export const instantiate = (compiledJSCode, importObject) => {
   const createInstance = eval(compiledJSCode);
   return createInstance(importObject);
 };
@@ -58,7 +58,7 @@ class Player extends AudioWorkletProcessor {
     };
 
     // const instance = await WebAssembly.instantiate(this.module, imports);
-    const instance = await instantiateAot(this.module, imports);
+    const instance = instantiate(this.module, imports);
     this.run = instance.exports.run;
   }
 

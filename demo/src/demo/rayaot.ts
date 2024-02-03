@@ -1,5 +1,5 @@
 import { ELEM_ID } from "./common";
-import { instantiateAot } from "@haribala/wasm2js";
+import { instantiate } from "@haribala/wasm2js";
 // import {dat} from 'https://cdn.jsdelivr.net/npm/dat.gui@0.7.6/build/dat.gui.min.js';
 
 export const setupRayAotDemo = async (compiledJSCode: string) => {
@@ -51,7 +51,7 @@ export const setupRayAotDemo = async (compiledJSCode: string) => {
 
   let mem: Uint8Array | undefined = undefined;
   const importObject: any = { Math };
-  const instance = await instantiateAot(compiledJSCode, importObject);
+  const instance = instantiate(compiledJSCode, importObject);
 
   let canvasData = new Uint8Array((instance.exports.mem as Uint8Array).buffer, 1024, 256000);
   let canvas = document.querySelector('canvas');

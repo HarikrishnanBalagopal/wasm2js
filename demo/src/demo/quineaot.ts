@@ -1,5 +1,5 @@
 import { ELEM_ID } from "./common";
-import { compileAot, instantiateAot } from "@haribala/wasm2js";
+import { compile, instantiate } from "@haribala/wasm2js";
 
 export const setupQuineAotDemo = async (_: string) => {
   console.log('setting up the AOT compiled quine demo');
@@ -77,10 +77,10 @@ export const setupQuineAotDemo = async (_: string) => {
     // const instance = await instantiate(compiledModule, imports);
     console.log('clicked');
     compare_arrays(reference_data, data);
-    const myAotCompiledJSCode = await compileAot(data, false);
+    const myAotCompiledJSCode = compile(data, false);
     // const myAotCompiledJSCode = await compileAot(data, true);
     // const myAotCompiledJSCode = await compileAot(reference_data, false);
-    const instance = await instantiateAot(myAotCompiledJSCode, {});
+    const instance = instantiate(myAotCompiledJSCode, {});
     console.log('quine instance', instance);
     const memory = instance.exports[''];
     const _data = new Uint8Array((memory as Uint8Array).buffer, 0, length);
