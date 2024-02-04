@@ -326,7 +326,7 @@ export const setupBadGBAotDemo = async (compiledJSCode: string) => {
     // module = await WebAssembly.compile(bytes);
 
     // Load porklike by default
-    let romResponse = await fetch('/assets/wasm/porklike.gb');
+    let romResponse = await fetch(`${window.location.pathname}assets/demo/badgb/porklike.gb`);
     let romBytes = await romResponse.arrayBuffer();
     // let instance = await WebAssembly.instantiate(module);
     let instance = instantiate(compiledJSCode, {});

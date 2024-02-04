@@ -917,9 +917,11 @@ export const compileAotHelper = (
                     );
                 } else {
                     jsCode.push(
-                        'const x2 = Number(BigInt.asUintN(32, BigInt(stack.pop())));',
-                        'const x1 = Number(BigInt.asUintN(32, BigInt(stack.pop())));',
-                        'stack.push(x1 ^ x2);',
+                        '{',
+                        '    const x2 = Number(BigInt.asUintN(32, BigInt(stack.pop())));',
+                        '    const x1 = Number(BigInt.asUintN(32, BigInt(stack.pop())));',
+                        '    stack.push(x1 ^ x2);',
+                        '}',
                     );
                 }
                 break;
