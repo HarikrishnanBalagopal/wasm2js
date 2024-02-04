@@ -35,7 +35,7 @@ const compile_and_execute = async (wasmBytes) => {
     console.log('javascript code:');
     console.log(jsCode);
     // Create an instance of the wasm module.
-    // NOTE: instantiateAot will also call the 'start' function if it exists.
+    // NOTE: 'instantiate' will also call the 'start' function if it exists.
     // https://webassembly.github.io/spec/core/text/modules.html#start-function
     const importObject = { /* imports required by the wasm module */ };
     const instance = instantiate(jsCode, importObject);
