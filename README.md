@@ -6,6 +6,8 @@ https://www.npmjs.com/package/@haribala/wasm2js
 
 Demos: https://haribala.dev/wasm2js
 
+<img src="screenshots.png" alt="Screenshots of the demo apps" width="50%"/>
+
 NOTE: This library is not the same as packages like
 https://github.com/thlorenz/wasm2js , https://github.com/mafintosh/wat2js , etc.
 which only embed the WASM binary in a Javascript module.
