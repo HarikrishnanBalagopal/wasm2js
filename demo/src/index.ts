@@ -109,8 +109,27 @@ h1 {
 
     const rootE = document.querySelector('#root');
     const header = document.createElement('h1');
-    header.textContent = 'Demos';
+    header.textContent = 'WASM to JS Demos';
     rootE.appendChild(header);
+
+    const create_link = (s: string, parent?: HTMLElement) => {
+        const p_link = document.createElement('a');
+        p_link.textContent = s;
+        p_link.setAttribute('href', s);
+        (parent ? parent : rootE).appendChild(p_link);
+        const p_link_br = document.createElement('br');
+        (parent ? parent : rootE).appendChild(p_link_br);
+    };
+
+    const p_info = document.createElement('p');
+    p_info.textContent = 'Each of the below demos were compiled (decompiled?) from a WebAssembly binary to Javascript code using the library:';
+    create_link('https://github.com/HarikrishnanBalagopal/wasm2js', p_info);
+    create_link('https://www.npmjs.com/package/@haribala/wasm2js', p_info);
+    rootE.appendChild(p_info);
+    const p_info_ref = document.createElement('p');
+    p_info_ref.textContent = 'The demos were taken and adapted to work with Wasm2JS from this repo:';
+    create_link('https://github.com/binji/raw-wasm', p_info_ref);
+    rootE.appendChild(p_info_ref);
     // rootE.appendChild(controlsE);
     {
         // add screenshots
