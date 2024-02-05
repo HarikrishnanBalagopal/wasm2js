@@ -29,8 +29,7 @@ export default {
         new HtmlWebpackPlugin({ template: 'src/index.html', favicon: 'assets/images/favicon.ico' }),
         new CopyPlugin({
             patterns: [
-                { from: "assets/wasm", to: "assets/wasm" },
-                { from: "assets/demo", to: "assets/demo" },
+                { from: "assets/", to: "assets/" },
             ],
         }),
     ],

@@ -1,10 +1,10 @@
-import { ELEM_ID } from "./common";
+import { ROOT_ELEM_ID } from "./common";
 import { instantiate } from "@haribala/wasm2js";
 // import {dat} from 'https://cdn.jsdelivr.net/npm/dat.gui@0.7.6/build/dat.gui.min.js';
 
 export const setupRayAotDemo = async (compiledJSCode: string) => {
   console.log('setting up the AOT compiled ray demo');
-  const outputE = document.querySelector('#' + ELEM_ID);
+  const outputE = document.querySelector('#' + ROOT_ELEM_ID);
   outputE.innerHTML = '';
   // outputE.innerHTML = `<script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.6/build/dat.gui.min.js"></script>
   // <canvas width="320" height="200"></canvas>`;

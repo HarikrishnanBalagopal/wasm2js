@@ -1,9 +1,10 @@
-import { ELEM_ID } from "./common";
+import { ROOT_ELEM_ID } from "./common";
 import { instantiate } from "@haribala/wasm2js";
 
 export const setupBadGBAotDemo = async (compiledJSCode: string) => {
   console.log('setting up the AOT compiled BadGB demo');
-  const outputE = document.querySelector('#' + ELEM_ID);
+  const outputE = document.querySelector('#' + ROOT_ELEM_ID);
+  outputE.innerHTML = '';
   outputE.innerHTML = `<div id="game">
   <canvas width="160" height="144"></canvas>
 </div>

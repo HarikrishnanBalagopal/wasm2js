@@ -1,6 +1,5 @@
 import { compile } from "@haribala/wasm2js";
 
-import { ELEM_ID } from "./demo/common";
 import { setupBadGBAotDemo } from "./demo/badgbaot";
 import { setupDinoAotDemo } from "./demo/dinoaot";
 import { setupFireAotDemo } from "./demo/fireaot";
@@ -9,81 +8,139 @@ import { setupMetaBallAotDemo } from "./demo/metaballaot";
 import { setupModAotDemo } from "./demo/modaot";
 import { setupRayAotDemo } from "./demo/rayaot";
 import { setupSnakeAotDemo } from "./demo/snakeaot";
-import { setupTestAddVec2AotDemo } from "./demo/testaddvec2aot";
-import { setupFibAotDemo } from "./demo/fibaot";
 import { setupMatch3AotDemo } from "./demo/match3aot";
 import { setupQuineAotDemo } from "./demo/quineaot";
 import { setupJitAotDemo } from "./demo/jitaot";
 
+const clickHandler = async (target: string) => {
+    // const target = (e.target as HTMLOptionElement).value;
+    // if (target === default_url) return;
+
+    const wasmUrl = `${window.location.pathname}assets/wasm/${target}.wasm`;
+    console.log('fetching wasm module', wasmUrl);
+    const response = await fetch(wasmUrl);
+    if (!response.ok) throw new Error('failed to fetch');
+    const wasmBytes = new Uint8Array(await response.arrayBuffer());
+    console.log('wasm module bytes:', wasmBytes);
+    // const myAotCompiledJSCode = compile(wasmBytes, true);
+    const myAotCompiledJSCode = compile(wasmBytes, false);
+    console.log('myAotCompiledJSCode:');
+    console.log(myAotCompiledJSCode);
+
+    if (target === 'quine') return await setupQuineAotDemo(myAotCompiledJSCode);
+    if (target === 'fire') return await setupFireAotDemo(myAotCompiledJSCode);
+    if (target === 'jit') return await setupJitAotDemo(myAotCompiledJSCode);
+    if (target === 'dino') return await setupDinoAotDemo(myAotCompiledJSCode);
+    if (target === 'snake') return await setupSnakeAotDemo(myAotCompiledJSCode);
+    if (target === 'metaball') return await setupMetaBallAotDemo(myAotCompiledJSCode);
+    if (target === 'maze') return await setupMazeAotDemo(myAotCompiledJSCode);
+    if (target === 'mod') return await setupModAotDemo(myAotCompiledJSCode);
+    if (target === 'ray') return await setupRayAotDemo(myAotCompiledJSCode);
+    if (target === 'match3') return await setupMatch3AotDemo(myAotCompiledJSCode);
+    if (target === 'badgb') return await setupBadGBAotDemo(myAotCompiledJSCode);
+    throw new Error(`unsupported demo: ${target}`);
+};
+
 const setup = () => {
     console.log('setup start');
-    const wasmSelectE = document.createElement('select');
-    const default_url = '---';
-    const urls = [
-        default_url,
-        // 'no-start',
-        // 'test-add-vec2',
-        // 'add',
-        // 'fib',
-        'quine',
-        'fire',
-        'jit',
-        'metaball',
-        'inflate',
-        'chip8',
-        'ray',
-        'snake',
-        'dino',
-        'maze',
-        'match3',
-        'mod',
-        'badgb',
-    ];
-    urls.forEach(s => {
-        const optionE = document.createElement('option');
-        optionE.setAttribute('value', s);
-        optionE.textContent = s;
-        wasmSelectE.appendChild(optionE);
-    });
-    wasmSelectE.addEventListener('change', async (e) => {
-        const target = (e.target as HTMLOptionElement).value;
-        if (target === default_url) return;
+    {
+        const styleE = document.createElement('style');
+        styleE.innerHTML = `
+h1 {
+    font-family: sans-serif;
+}
+.div-screenshot-wrapper {
+    display: grid;
+    background-color: black;
+    padding: 0.2em;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.1em;
+}
+.div-screenshot-wrapper > img {
+    object-fit: cover;
+    width: 100%;
+    max-height: 100%;
+    aspect-ratio: 1;
+    cursor: pointer;
+}
+.div-screenshot-wrapper > img:hover {
+    transform: scale(1.2);
+    transition: all 0.2s;
+}
+`;
+        document.head.appendChild(styleE);
+    }
+    // const wasmSelectE = document.createElement('select');
+    // const default_url = '---';
+    // const urls = [
+    //     default_url,
+    //     // 'no-start',
+    //     // 'test-add-vec2',
+    //     // 'add',
+    //     // 'fib',
+    //     'quine',
+    //     'fire',
+    //     'jit',
+    //     'metaball',
+    //     'inflate',
+    //     'chip8',
+    //     'ray',
+    //     'snake',
+    //     'dino',
+    //     'maze',
+    //     'match3',
+    //     'mod',
+    //     'badgb',
+    // ];
+    // urls.forEach(s => {
+    //     const optionE = document.createElement('option');
+    //     optionE.setAttribute('value', s);
+    //     optionE.textContent = s;
+    //     wasmSelectE.appendChild(optionE);
+    // });
+    // wasmSelectE.addEventListener('change', e => {
+    //     const target = (e.target as HTMLOptionElement).value;
+    //     if (target === default_url) return;
+    //     clickHandler(target);
+    // });
+    // const controlsE = document.createElement('div');
+    // controlsE.classList.add('controls');
+    // controlsE.appendChild(wasmSelectE);
 
-        const wasmUrl = `${window.location.pathname}assets/wasm/${target}.wasm`;
-        console.log(wasmUrl);
-        const response = await fetch(wasmUrl);
-        if (!response.ok) throw new Error('failed to fetch');
-        const wasmBytes = new Uint8Array(await response.arrayBuffer());
-        console.log('wasm module bytes:', wasmBytes);
-        // const myAotCompiledJSCode = compile(wasmBytes, true);
-        const myAotCompiledJSCode = compile(wasmBytes, false);
-        console.log('myAotCompiledJSCode:');
-        console.log(myAotCompiledJSCode);
-
-        if (target === 'fire') return await setupFireAotDemo(myAotCompiledJSCode);
-        if (target === 'quine') return await setupQuineAotDemo(myAotCompiledJSCode);
-        if (target === 'jit') return await setupJitAotDemo(myAotCompiledJSCode);
-        if (target === 'test-add-vec2') return await setupTestAddVec2AotDemo(myAotCompiledJSCode);
-        if (target === 'fib') return await setupFibAotDemo(myAotCompiledJSCode);
-        if (target === 'dino') return await setupDinoAotDemo(myAotCompiledJSCode);
-        if (target === 'snake') return await setupSnakeAotDemo(myAotCompiledJSCode);
-        if (target === 'metaball') return await setupMetaBallAotDemo(myAotCompiledJSCode);
-        if (target === 'maze') return await setupMazeAotDemo(myAotCompiledJSCode);
-        if (target === 'mod') return await setupModAotDemo(myAotCompiledJSCode);
-        if (target === 'ray') return await setupRayAotDemo(myAotCompiledJSCode);
-        if (target === 'match3') return await setupMatch3AotDemo(myAotCompiledJSCode);
-        if (target === 'badgb') return await setupBadGBAotDemo(myAotCompiledJSCode);
-        throw new Error(`unsupported demo: ${target}`);
-    });
-    const controlsE = document.createElement('div');
-    controlsE.classList.add('controls');
-    controlsE.appendChild(wasmSelectE);
-    const outputE = document.createElement('div');
-    outputE.id = ELEM_ID;
-    outputE.classList.add('output');
     const rootE = document.querySelector('#root');
-    rootE.appendChild(controlsE);
-    rootE.appendChild(outputE);
+    const header = document.createElement('h1');
+    header.textContent = 'Demos';
+    rootE.appendChild(header);
+    // rootE.appendChild(controlsE);
+    {
+        // add screenshots
+        const wrapper = document.createElement('div');
+        wrapper.classList.add('div-screenshot-wrapper');
+        [
+            'quine.png',
+            'fire.jpg',
+            'jit.png',
+            'metaball.jpg',
+            'inflate.jpg',
+            'chip8.jpg',
+            'ray.jpg',
+            'snake.jpg',
+            'dino.png',
+            'maze.jpg',
+            'match3.jpg',
+            'mod.jpg',
+            'badgb.png',
+        ].forEach(s => {
+            const img = document.createElement('img');
+            img.setAttribute('src', `${window.location.pathname}assets/images/screenshots/${s}`);
+            img.setAttribute('alt', s);
+            const target = s.slice(0, s.lastIndexOf('.'));
+            console.log('target', target);
+            img.addEventListener('click', () => clickHandler(target));
+            wrapper.appendChild(img);
+        });
+        rootE.appendChild(wrapper);
+    }
     console.log('setup end');
 };
 

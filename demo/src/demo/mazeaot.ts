@@ -1,9 +1,9 @@
-import { ELEM_ID } from "./common";
+import { ROOT_ELEM_ID } from "./common";
 import { instantiate } from "@haribala/wasm2js";
 
 export const setupMazeAotDemo = async (compiledJSCode: string) => {
   console.log('setting up the AOT compiled maze demo');
-  const outputE = document.querySelector('#' + ELEM_ID);
+  const outputE = document.querySelector('#' + ROOT_ELEM_ID);
   outputE.innerHTML = '';
 
   const span_timer = document.createElement('span');

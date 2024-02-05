@@ -1,8 +1,8 @@
-import { ELEM_ID } from "./common";
+import { ROOT_ELEM_ID } from "./common";
 
 export const setupModAotDemo = async (compiledJSCode: string) => {
   console.log('setting up the AOT compiled mod demo');
-  const outputE = document.querySelector('#' + ELEM_ID);
+  const outputE = document.querySelector('#' + ROOT_ELEM_ID);
   outputE.innerHTML = '';
   outputE.innerHTML = `<div class="body-wrapper">
   <div class="controls-wrapper bborder">

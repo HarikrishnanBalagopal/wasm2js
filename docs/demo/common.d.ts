@@ -1,1 +1,1 @@
-export declare const ELEM_ID = "the-output-elem";
+export declare const ROOT_ELEM_ID = "root";

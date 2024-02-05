@@ -1,9 +1,9 @@
-import { ELEM_ID } from "./common";
+import { ROOT_ELEM_ID } from "./common";
 import { compile, instantiate } from "@haribala/wasm2js";
 
 export const setupJitAotDemo = async (compiledJSCode: string) => {
     console.log('setting up the AOT compiled JIT demo');
-    const outputE = document.querySelector('#' + ELEM_ID);
+    const outputE = document.querySelector('#' + ROOT_ELEM_ID);
     // console.log(outputE);
     outputE.innerHTML = `
   This is a very simple expression compiler.<br>
@@ -67,11 +67,12 @@ export const setupJitAotDemo = async (compiledJSCode: string) => {
     const ffi = {
         '': {
             'compile': (len: number) => {
-                const data = new Uint8Array(u8a.buffer, 16, len);
+                const _data = new Uint8Array(u8a.buffer, 16, len);
+                const data = _data.slice();
                 update(data);
-                // const js = compile(data, false);
-                // const instance = instantiate(js, {});
-                const instance = new WebAssembly.Instance(new WebAssembly.Module(data));
+                const js = compile(data, false);
+                const instance = instantiate(js, {});
+                // const instance = new WebAssembly.Instance(new WebAssembly.Module(data));
                 const func = instance.exports['0'];
                 // table.set(0, func);
                 table[0] = func as Function;

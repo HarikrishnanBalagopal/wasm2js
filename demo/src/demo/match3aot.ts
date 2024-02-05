@@ -1,4 +1,4 @@
-import { ELEM_ID } from "./common";
+import { ROOT_ELEM_ID } from "./common";
 import { instantiate } from "@haribala/wasm2js";
 // import { match3_fn } from './match3helper.js';
 
@@ -41,7 +41,7 @@ import { instantiate } from "@haribala/wasm2js";
 
 export const setupMatch3AotDemo = async (compiledJSCode: string) => {
     console.log('setting up the AOT compiled match 3 demo');
-    const outputE = document.querySelector('#' + ELEM_ID);
+    const outputE = document.querySelector('#' + ROOT_ELEM_ID);
     // console.log(outputE);
     outputE.innerHTML = '';
 

@@ -1,9 +1,9 @@
-import { ELEM_ID } from "./common";
+import { ROOT_ELEM_ID } from "./common";
 import { compile, instantiate } from "@haribala/wasm2js";
 
 export const setupQuineAotDemo = async (_: string) => {
   console.log('setting up the AOT compiled quine demo');
-  const outputE = document.querySelector('#' + ELEM_ID);
+  const outputE = document.querySelector('#' + ROOT_ELEM_ID);
   // console.log(outputE);
   outputE.innerHTML = `
 <p>
