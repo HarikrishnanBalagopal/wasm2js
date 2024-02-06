@@ -11,6 +11,7 @@ import { setupSnakeAotDemo } from "./demo/snakeaot";
 import { setupMatch3AotDemo } from "./demo/match3aot";
 import { setupQuineAotDemo } from "./demo/quineaot";
 import { setupJitAotDemo } from "./demo/jitaot";
+import { setupChip8AotDemo } from "./demo/chip8aot";
 
 const clickHandler = async (target: string) => {
     // const target = (e.target as HTMLOptionElement).value;
@@ -30,13 +31,15 @@ const clickHandler = async (target: string) => {
     if (target === 'quine') return await setupQuineAotDemo(myAotCompiledJSCode);
     if (target === 'fire') return await setupFireAotDemo(myAotCompiledJSCode);
     if (target === 'jit') return await setupJitAotDemo(myAotCompiledJSCode);
-    if (target === 'dino') return await setupDinoAotDemo(myAotCompiledJSCode);
-    if (target === 'snake') return await setupSnakeAotDemo(myAotCompiledJSCode);
     if (target === 'metaball') return await setupMetaBallAotDemo(myAotCompiledJSCode);
-    if (target === 'maze') return await setupMazeAotDemo(myAotCompiledJSCode);
-    if (target === 'mod') return await setupModAotDemo(myAotCompiledJSCode);
+    // if (target === 'inflate') return await setupInflateAotDemo(myAotCompiledJSCode);
+    if (target === 'chip8') return await setupChip8AotDemo(myAotCompiledJSCode);
     if (target === 'ray') return await setupRayAotDemo(myAotCompiledJSCode);
+    if (target === 'snake') return await setupSnakeAotDemo(myAotCompiledJSCode);
+    if (target === 'dino') return await setupDinoAotDemo(myAotCompiledJSCode);
+    if (target === 'maze') return await setupMazeAotDemo(myAotCompiledJSCode);
     if (target === 'match3') return await setupMatch3AotDemo(myAotCompiledJSCode);
+    if (target === 'mod') return await setupModAotDemo(myAotCompiledJSCode);
     if (target === 'badgb') return await setupBadGBAotDemo(myAotCompiledJSCode);
     throw new Error(`unsupported demo: ${target}`);
 };

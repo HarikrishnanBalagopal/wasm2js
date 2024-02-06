@@ -1121,8 +1121,8 @@ export const compileAotHelper = (
                 jsCode.push(
                     '{',
                     '    const x = stack.pop();',
-                    '    const v = stack.pop();',
-                    '    stack.push((v >>> x) | ((v << (64-x) & 0xFFFFFFFFFFFFFFFFn)));',
+                    '    const v = BigInt.asUintN(64, stack.pop());',
+                    '    stack.push((v >> x) | ((v << (64n - x) & 0xFFFFFFFFFFFFFFFFn)));',
                     '}',
                 );
                 // throw new Error('TODO implement I_I64_ROTR');
