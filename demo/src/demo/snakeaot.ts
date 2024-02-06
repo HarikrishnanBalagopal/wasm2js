@@ -14,7 +14,11 @@ export const setupSnakeAotDemo = async (compiledJSCode: string) => {
   outputE.appendChild(canvas);
   {
     const s = document.createElement('style');
-    s.innerHTML = `body {
+    s.innerHTML = `
+    body{
+      margin: 0;
+    }
+    #${ROOT_ELEM_ID} {
       position: absolute;
       display: flex;
       flex-direction: column;

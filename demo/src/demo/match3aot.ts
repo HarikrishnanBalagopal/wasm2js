@@ -53,7 +53,11 @@ export const setupMatch3AotDemo = async (compiledJSCode: string) => {
     outputE.appendChild(canvas);
     {
         const s = document.createElement('style');
-        s.innerHTML = `#${ROOT_ELEM_ID} {
+        s.innerHTML = `
+    body {
+      margin: 0;
+    }
+    #${ROOT_ELEM_ID} {
         position: absolute;
         display: flex;
         flex-direction: column;
